@@ -11,8 +11,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javaVersion>1.8</javaVersion>
-        <kotlinVersion>1.2.0</kotlinVersion>
-        <galagoVersion>3.13-SNAPSHOT</galagoVersion>
+        <kotlinVersion>1.2.40</kotlinVersion>
+        <galagoVersion>3.13</galagoVersion>
         <luceneVersion>7.1.0</luceneVersion>
         <mainClass>edu.umass.cics.ciir.irene.MainKt</mainClass>
         <kotlin.version>1.2.10</kotlin.version>

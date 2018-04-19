@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu
+
+cd galago
+./scripts/installlib.sh
+mvn install -DskipTests
+cd ..
+

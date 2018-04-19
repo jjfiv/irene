@@ -1,0 +1,5 @@
+/target/
+*.class
+*.trecrun
+*.jar
+dependency-reduced-pom.xml
