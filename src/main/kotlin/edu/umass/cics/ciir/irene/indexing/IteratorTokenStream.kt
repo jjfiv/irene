@@ -1,5 +1,6 @@
 package edu.umass.cics.ciir.irene.indexing
 
+import edu.umass.cics.ciir.irene.BoolField
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.LDoc
 import edu.umass.cics.ciir.irene.tokenize
@@ -128,6 +129,13 @@ class LDocBuilder(val params: IndexParams) {
         fields.values.flatten().forEach { f -> ldoc.add(f) }
         //println(ldoc.fields.map { it.name() })
         return ldoc
+    }
+
+    fun setBoolField(field: String, value: Boolean, stored: Boolean = true) {
+        if (fields.containsKey(field)) {
+            error("Already specified $field for this document $fields.")
+        }
+        fields[field] = listOf(BoolField(field, value, stored))
     }
 
     fun setStringField(field: String, categorical: String, stored: Boolean=true) {

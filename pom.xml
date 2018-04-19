@@ -6,7 +6,7 @@
 
     <groupId>edu.umass.cics.ciir</groupId>
     <artifactId>irene</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.3</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -52,13 +52,13 @@
             <artifactId>jsr305</artifactId>
             <version>3.0.0</version>
           </dependency>
-
+          
         <!-- for comparison to galago QL -->
+        <!-- someday make this test/optional -->
         <dependency>
           <groupId>org.lemurproject.galago</groupId>
           <artifactId>core</artifactId>
           <version>${galagoVersion}</version>
-          <!--<scope>test</scope>-->
             <exclusions>
                 <exclusion>
                     <groupId>edu.stanford.nlp</groupId>
