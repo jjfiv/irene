@@ -73,7 +73,7 @@ class LDocBuilder(val params: IndexParams) {
     fun setTextField(field: String, text: String, stored: Boolean=true) = setTextField(field, text, analyzer.tokenize(field, text), stored)
 
     fun maybeTextField(field: String, text: String?, stored: Boolean=true) {
-        if (text != null) {
+        if (text != null && !text.isBlank()) {
             setTextField(field, text, stored)
         }
     }

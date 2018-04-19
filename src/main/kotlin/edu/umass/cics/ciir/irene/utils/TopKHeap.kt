@@ -164,6 +164,14 @@ fun TObjectDoubleHashMap<String>.take(k: Int): List<WeightedWord> {
     }
     return heap.sorted
 }
+fun HashMap<String?, Int>.take(k: Int): List<WeightedWord> {
+    val heap = ScoringHeap<WeightedWord>(k)
+    this.forEach { term, weight ->
+        val fw = weight.toFloat()
+        heap.offer(fw, { WeightedWord(fw, term ?: "<null>") })
+    }
+    return heap.sorted
+}
 
 class ScoringHeap<T: WeightedForHeap>(val maxSize: Int): kotlin.collections.AbstractList<T>() {
     val data: ArrayList<T> = ArrayList(maxSize)
