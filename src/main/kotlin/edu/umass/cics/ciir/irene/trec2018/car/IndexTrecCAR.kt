@@ -22,7 +22,7 @@ fun main(args: Array<String>) {
     val msg = CountingDebouncer(29794697L)
 
     val index = IreneIndexer(params).use { writer ->
-        DeserializeData.iterParagraphs(StreamCreator.openInputStream(File(""))).forEach { para ->
+        DeserializeData.iterParagraphs(StreamCreator.openInputStream(input)).forEach { para ->
             writer.doc {
                 setId(para.paraId)
                 setTextField(params.defaultField, para.textOnly, false)
