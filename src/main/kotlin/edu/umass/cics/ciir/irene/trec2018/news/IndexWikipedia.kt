@@ -17,9 +17,9 @@ fun main(args: Array<String>) {
 
     val params = IndexParams().apply {
         create()
-        withPath(File(argp.get("index", "/mnt/scratch/jfoley/trec-car-v2/car.irene")))
+        withPath(File(argp.get("index", "/mnt/scratch/jfoley/trec-news-2018/news.irene")))
     }
-    val msg = CountingDebouncer(1_000_000L)
+    val msg = CountingDebouncer(7_100_813L)
 
     val index = IreneIndexer(params).use { writer ->
         DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).forEach { page ->
