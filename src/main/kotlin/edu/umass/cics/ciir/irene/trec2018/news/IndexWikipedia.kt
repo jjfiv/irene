@@ -7,6 +7,7 @@ import edu.unh.cs.treccar_v2.read_data.DeserializeData
 import org.lemurproject.galago.utility.Parameters
 import org.lemurproject.galago.utility.StreamCreator
 import java.io.File
+import kotlin.streams.asStream
 
 
 fun main(args: Array<String>) {
@@ -22,7 +23,7 @@ fun main(args: Array<String>) {
     val msg = CountingDebouncer(7_100_813L)
 
     val index = IreneIndexer(params).use { writer ->
-        DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).forEach { page ->
+        DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).asSequence().asStream().parallel().forEach { page ->
             writer.doc {
                 setId(page.pageId)
                 setTextField("title", page.pageName)
