@@ -11,7 +11,7 @@ import java.io.File
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args)
 
-    val input = File(argp.get("input", "/mnt/scratch/jfoley/trec-news-2018/WashingtonPost.v2/data/TREC_Washington_Post_Collection.v2.jl.gz"))
+    val input = File(argp.get("input", "/mnt/scratch/jfoley/trec-news-2018/WashingtonPost.v2/data/TREC_Washington_Post_collection.v2.jl.gz"))
     assert(input.exists())
     val params = IndexParams().apply {
         create()
@@ -21,7 +21,6 @@ fun main(args: Array<String>) {
     val index = IreneIndexer(params).use { writer ->
         input.smartDoLines(total=595037) { line ->
             val jdoc = Parameters.parseString(line)
-            println(jdoc.toPrettyString())
             writer.doc {
                 setId(jdoc.getStr("id"))
                 setDenseLongField("published_date", jdoc.getLong("published_date"))
