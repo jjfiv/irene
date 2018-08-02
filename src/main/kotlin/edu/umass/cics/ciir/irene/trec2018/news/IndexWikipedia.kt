@@ -23,7 +23,7 @@ fun main(args: Array<String>) {
     val msg = CountingDebouncer(7_100_813L)
 
     val index = IreneIndexer(params).use { writer ->
-        DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).asSequence().asStream().parallel().forEach { page ->
+        DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).forEach { page ->
             writer.doc {
                 setId(page.pageId)
                 setTextField("title", page.pageName)
