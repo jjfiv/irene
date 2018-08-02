@@ -19,7 +19,7 @@ fun main(args: Array<String>) {
     }
 
     val index = IreneIndexer(params).use { writer ->
-        input.smartDoLines(total=595037) { line ->
+        input.smartDoLines(doProgress=true, total=595037) { line ->
             val jdoc = Parameters.parseString(line)
             writer.doc {
                 setId(jdoc.getStr("id"))
@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
                 // Collect disjoint paragraphs:
                 val paragraphs = ArrayList<String>()
                 for (content in jdoc.getAsList("contents", Parameters::class.java)) {
-                    if (content.get("subtype", "unknown") == "paragraph") {
+                    if (content.getString("subtype") == "paragraph") {
                         val html = Jsoup.parse(content.get("content", "")).text()
                         paragraphs.add(html)
                     }
