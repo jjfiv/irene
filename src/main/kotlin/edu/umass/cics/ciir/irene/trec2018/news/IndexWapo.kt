@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
                 // Collect disjoint paragraphs:
                 val paragraphs = ArrayList<String>()
                 for (content in jdoc.getAsList("contents", Parameters::class.java)) {
-                    if (content.getString("subtype") == "paragraph") {
+                    if (content.get("subtype") == "paragraph") {
                         val html = Jsoup.parse(content.get("content", "")).text()
                         paragraphs.add(html)
                     }
