@@ -32,6 +32,7 @@ fun main(args: Array<String>) {
                 println("Indexing TREC CAR: ${it}")
             }
         }
+        writer.commit()
         writer.open()
     }
 
