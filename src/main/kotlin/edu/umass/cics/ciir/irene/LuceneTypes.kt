@@ -38,8 +38,10 @@ inline fun <T> lucene_try(action: ()->T): T? {
     return try {
         action()
     } catch (missing: IllegalArgumentException) {
+        missing.printStackTrace()
         null
     } catch (ioe: IOException) {
+        ioe.printStackTrace()
         null
     }
 }
