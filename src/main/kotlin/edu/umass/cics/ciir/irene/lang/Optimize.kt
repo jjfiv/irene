@@ -1,8 +1,8 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.DataNeeded
 import edu.umass.cics.ciir.irene.galago.incr
+import edu.umass.cics.ciir.irene.ltr.RREnv
 
 /**
  *
@@ -138,6 +138,7 @@ fun combineWeights(input: QExpr, ctx: CombineWeightsFixedPoint): QExpr = qmap(in
         is ConstScoreExpr,
         is LengthsExpr,
         is LuceneExpr,
+        is DenseLongField,
         NeverMatchLeaf,
         AlwaysMatchLeaf,
         is TextExpr -> q
@@ -178,7 +179,7 @@ fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
             q.needed = childNeeds
             childNeeds
         }
-        is LengthsExpr -> return
+        is DenseLongField, is LengthsExpr -> return
         is AndExpr, is OrExpr -> DataNeeded.DOCS
     // Pass through whatever at this point.
         is WhitelistMatchExpr, AlwaysMatchLeaf, NeverMatchLeaf, is MultiExpr -> childNeeds
@@ -256,6 +257,7 @@ fun reduceSingleChildren(q: QExpr): QExpr = when(q) {
     is WhitelistMatchExpr,
     is LengthsExpr,
     is TextExpr,
+    is DenseLongField,
     is LuceneExpr,
     is WeightExpr,
     is CountEqualsExpr,

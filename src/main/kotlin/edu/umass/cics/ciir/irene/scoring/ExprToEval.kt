@@ -15,6 +15,7 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
         println(q)
         throw e
     }
+    is DenseLongField -> ctx.denseLongField(q)
     is LuceneExpr -> TODO()
     is SynonymExpr -> TODO()
     is AndExpr -> BooleanAndEval(q.children.map { exprToEval(it, ctx) })

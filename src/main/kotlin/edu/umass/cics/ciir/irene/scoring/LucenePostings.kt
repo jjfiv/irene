@@ -19,6 +19,28 @@ data class LuceneMissingTerm(val term: Term) : PositionsEvalNode, LeafEvalNode()
     override fun estimateDF() = 0L
 }
 
+data class LuceneLongDocValues(val iter: NumericDocValues, val missing: Long): LongEvalNode, LeafEvalNode() {
+    override fun matches(env: ScoringEnv): Boolean {
+        val doc = env.doc
+        if (iter.docID() < doc) {
+            iter.advance(doc)
+        }
+        if (iter.docID() == doc) {
+            return true
+        }
+        return false
+    }
+    override fun explain(env: ScoringEnv)= Explanation.match(score(env).toFloat(), "LongDocValues(${value(env)}")
+    override fun estimateDF(): Long = iter.cost()
+    override fun value(env: ScoringEnv): Long {
+        if (matches(env)) {
+            return iter.longValue()
+        }
+        return missing
+    }
+
+}
+
 data class LuceneDocLengths(val field: String, val lengths: NumericDocValues, val info: ComputedStats): CountEvalNode, LeafEvalNode() {
     override fun matches(env: ScoringEnv): Boolean {
         val doc = env.doc

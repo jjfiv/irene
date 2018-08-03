@@ -13,6 +13,7 @@ private fun createMoverRec(q: QExpr, ctx: IQContext) : QueryMover = when(q) {
     // Leaves:
     is TextExpr -> ctx.termMover(Term(q.countsField(), q.text))
     is LuceneExpr -> TODO("LuceneExpr")
+    is DenseLongField -> AlwaysMatchMover(q.toString(), ctx.numDocs())
 
     // Never score these subtrees.
     NeverMatchLeaf -> NeverMatchMover("literal")

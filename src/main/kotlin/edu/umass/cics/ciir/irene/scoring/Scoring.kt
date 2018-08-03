@@ -103,6 +103,11 @@ interface CountEvalNode : QueryEvalNode {
 interface PositionsEvalNode : CountEvalNode {
     fun positions(env: ScoringEnv): PositionsIter
 }
+interface LongEvalNode : QueryEvalNode {
+    fun value(env: ScoringEnv): Long
+    override fun score(env: ScoringEnv): Double = value(env).toDouble()
+    override fun count(env: ScoringEnv): Int = value(env).toInt()
+}
 
 class ConstCountEvalNode(val count: Int, val lengths: QueryEvalNode) : LeafEvalNode(), CountEvalNode {
     override fun count(env: ScoringEnv): Int = count

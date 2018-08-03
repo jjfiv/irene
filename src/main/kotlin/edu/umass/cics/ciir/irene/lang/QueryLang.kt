@@ -1,9 +1,9 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.DataNeeded
 import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
+import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.lucene_try
 import org.apache.lucene.index.Term
 import java.util.*
@@ -23,6 +23,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         NeverMatchLeaf,
         is ConstBoolExpr,
         is ConstScoreExpr,
+        is DenseLongField,
         is ConstCountExpr -> mapper(q)
 
         is MultiExpr -> mapper(MultiExpr(q.namedExprs.mapValues { (_, v) -> qmap(v, mapper) }))
@@ -184,6 +185,10 @@ data class WhitelistMatchExpr(var docNames: Set<String>? = null, var docIdentifi
         }
     }
     override fun copyLeaf() = WhitelistMatchExpr(docNames, docIdentifiers)
+}
+
+data class DenseLongField(val name: String, var missing: Long=0L): LeafExpr() {
+    override fun copyLeaf() = DenseLongField(name, missing)
 }
 
 data class LengthsExpr(var statsField: String?) : LeafExpr() {

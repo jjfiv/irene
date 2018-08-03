@@ -7,10 +7,7 @@ import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.incr
 import edu.umass.cics.ciir.irene.galago.pmake
-import edu.umass.cics.ciir.irene.lang.DirQLExpr
-import edu.umass.cics.ciir.irene.lang.QExpr
-import edu.umass.cics.ciir.irene.lang.SumExpr
-import edu.umass.cics.ciir.irene.lang.TextExpr
+import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.ltr.RRExpr
 import edu.umass.cics.ciir.irene.ltr.WeightedTerm
@@ -195,6 +192,9 @@ data class LTRDocScoringEnv(override val ltr: LTRDoc) : ScoringEnv(ltr.name.hash
 }
 
 class LTREvalSetupContext(override val env: RREnv) : EvalSetupContext {
+    override fun denseLongField(expr: DenseLongField): QueryEvalNode {
+        TODO("not implemented")
+    }
     val termCache = HashMap<Term, LTRDocTerm>()
     val lengthsCache = HashMap<String, LTRDocLength>()
     override fun create(term: Term, needed: DataNeeded): QueryEvalNode = termCache.computeIfAbsent(term, {
