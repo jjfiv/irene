@@ -3,7 +3,12 @@ package edu.umass.cics.ciir.irene.trec2018.news
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.galago.inqueryStop
+import edu.umass.cics.ciir.irene.lang.AndExpr
+import edu.umass.cics.ciir.irene.lang.DenseLongField
+import edu.umass.cics.ciir.irene.lang.LongLTE
+import edu.umass.cics.ciir.irene.lang.RequireExpr
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel
+import edu.umass.cics.ciir.irene.utils.timed
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import gnu.trove.map.hash.TObjectIntHashMap
 import org.jsoup.Jsoup
@@ -29,9 +34,9 @@ fun loadBGLinkQueries(path: String): List<TrecNewsBGLinkQuery> {
  */
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args);
-    val indexPath = File(argp.get("index", "/mnt/scratch/jfoley/trec-news-2018/wapo.irene"))
+    val indexPath = File(argp.get("index", "wapo.irene"))
     if (!indexPath.exists()) error("--index=$indexPath does not exist yet.")
-    val queries = loadBGLinkQueries(argp.get("queries", "/home/jfoley/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"));
+    val queries = loadBGLinkQueries(argp.get("queries", "/Users/jfoley/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"));
     val stopwords = inqueryStop
 
     IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
@@ -41,6 +46,9 @@ fun main(args: Array<String>) {
             val tokens = index.tokenize(docP.getString(index.defaultField) ?: "")
 
             val time = docP.get("published_date", 0L)
+
+            val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
+            val countBefore = index.count(publishedBeforeExpr)
 
             val counts = TObjectIntHashMap<String>()
             val length = tokens.size.toDouble()
@@ -55,8 +63,20 @@ fun main(args: Array<String>) {
             }
             val rm = RelevanceModel(weights, index.defaultField)
             val terms = rm.toTerms(10).map { it.term }
+            val rmExpr = rm.toQExpr(100)
+            val finalExpr = RequireExpr(AndExpr(listOf(rmExpr, publishedBeforeExpr)), rmExpr).deepCopy()
 
-            println("${q.qid}, $docNo ${docP.get("title")}\n\t${terms}")
+            println("${q.qid}, $docNo ${docP.get("title")}\n\t${terms}\n\t${countBefore}")
+
+            val (scoring_time, results) = timed { index.search(finalExpr, 100) }
+
+            val before_time = results.scoreDocs.map {
+                (index.getField(it.doc, "published_date")?.numericValue() ?: 0L).toLong()
+            }.count { pd -> pd <= time }
+            println("Found appropriate timeliness: ${before_time}/${results.scoreDocs.size}")
+            if (results.scoreDocs.mapTo(HashSet()) { it.doc } .contains(docNo)) {
+                println("Found self in ${scoring_time}")
+            }
         }
     }
 }

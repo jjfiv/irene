@@ -47,6 +47,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         is BoolToScoreExpr -> mapper(BoolToScoreExpr(qmap(q.child, mapper)))
         is CountToBoolExpr -> mapper(CountToBoolExpr(qmap(q.child, mapper)))
         is RequireExpr -> mapper(RequireExpr(qmap(q.cond, mapper), qmap(q.value, mapper)))
+        is LongLTE -> mapper(LongLTE(qmap(q.child, mapper), q.threshold))
     }
 }
 
@@ -189,6 +190,9 @@ data class WhitelistMatchExpr(var docNames: Set<String>? = null, var docIdentifi
 
 data class DenseLongField(val name: String, var missing: Long=0L): LeafExpr() {
     override fun copyLeaf() = DenseLongField(name, missing)
+}
+/** Match if a long expression is less than or equal to a threshold. (e.g., [DenseLongField])  */
+data class LongLTE(override var child: QExpr, val threshold: Long): SingleChildExpr() {
 }
 
 data class LengthsExpr(var statsField: String?) : LeafExpr() {

@@ -4,4 +4,6 @@
 *.class
 *.trecrun
 *.jar
+*.irene
+*.jl
 dependency-reduced-pom.xml

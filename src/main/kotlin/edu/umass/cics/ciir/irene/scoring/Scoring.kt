@@ -249,6 +249,7 @@ internal class BooleanOrEval(children: List<QueryEvalNode>): OrEval<QueryEvalNod
  */
 internal class BooleanAndEval(children: List<QueryEvalNode>): AndEval<QueryEvalNode>(children), BooleanNode { }
 
+
 /**
  * Created from [MaxExpr] using [exprToEval]
  */
@@ -342,6 +343,16 @@ internal abstract class SingleChildEval<out T : QueryEvalNode> : QueryEvalNode {
     override val children: List<QueryEvalNode> get() = listOf(child)
     override fun estimateDF(): Long = child.estimateDF()
     override fun matches(env: ScoringEnv): Boolean = child.matches(env)
+}
+
+internal class EvalLongLTE(override val child: LongEvalNode, val threshold: Long): SingleChildEval<LongEvalNode>(), BooleanNode {
+    override fun matches(env: ScoringEnv): Boolean = child.value(env) <= threshold;
+    override fun explain(env: ScoringEnv): Explanation {
+        if (matches(env)) {
+            return Explanation.match(1.0f, "EvalLongLTE: ${child.value(env)} <= ${threshold}")
+        }
+        return Explanation.noMatch("EvalLongLTE: ${child.value(env)} > ${threshold}")
+    }
 }
 
 internal class WeightedEval(override val child: QueryEvalNode, val weight: Double): SingleChildEval<QueryEvalNode>() {

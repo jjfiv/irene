@@ -81,5 +81,6 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
     AlwaysMatchLeaf -> FixedMatchEvalNode(true, ctx.numDocs().toLong())
     is WhitelistMatchExpr -> WhitelistMatchEvalNode(TIntHashSet(ctx.selectRelativeDocIds(q.docIdentifiers!!)))
     is CountEqualsExpr -> CountEqualsNode(q.target, exprToEval(q.child, ctx))
+    is LongLTE -> EvalLongLTE(exprToEval(q.child, ctx) as LongEvalNode, q.threshold)
 }
 

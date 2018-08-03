@@ -134,6 +134,7 @@ interface IIndex : Closeable {
         val fjson = docAsParameters(num) ?: return null
         return LTRDoc.create(id, fjson, fields, defaultField, tokenizer)
     }
+    fun count(q: QExpr): Int
 }
 class EmptyIndex(override val tokenizer: GenericTokenizer = WhitespaceTokenizer()) : IIndex {
     override val defaultField: String = "missing"
@@ -149,6 +150,7 @@ class EmptyIndex(override val tokenizer: GenericTokenizer = WhitespaceTokenizer(
         return Explanation.noMatch("EmptyIndex")
     }
     override fun docAsParameters(doc: Int): Parameters? = null
+    override fun count(q: QExpr): Int = 0
 }
 
 class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
@@ -252,6 +254,10 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
     override fun search(q: QExpr, n: Int): TopDocs {
         if (n == 0) return TopDocs(0L, emptyArray(), Float.NaN)
         return searcher.search(prepare(q), TopKCollectorManager(n))!!
+    }
+    override fun count(q: QExpr): Int {
+        val lq = prepare(q)
+        return searcher.count(lq)
     }
 
     fun pool(qs: Map<String, QExpr>, depth: Int): Map<String, TopDocs> {

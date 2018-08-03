@@ -28,6 +28,7 @@ private fun createMoverRec(q: QExpr, ctx: IQContext) : QueryMover = when(q) {
     is AndExpr, is OrderedWindowExpr, is UnorderedWindowExpr -> createAndMover(q.children.map { createMoverRec(it, ctx) }, ctx.numDocs())
 
 // Transformers are straight-forward:
+    is LongLTE,
     is CountToScoreExpr, is BoolToScoreExpr, is CountToBoolExpr, is AbsoluteDiscountingQLExpr, is BM25Expr, is WeightExpr, is DirQLExpr -> createMoverRec(q.trySingleChild, ctx)
 
 // NOTE: Galago semantics, only look at cond. This is not an AND like you might think.

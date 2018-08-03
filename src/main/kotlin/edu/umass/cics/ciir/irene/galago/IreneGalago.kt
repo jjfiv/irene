@@ -99,6 +99,7 @@ private fun toGalagoRecursive(q : QExpr): GExpr {
         is ProxExpr -> TODO()
         is CountEqualsExpr -> TODO()
         is DenseLongField -> TODO()
+        is LongLTE -> TODO()
     }
 }
 
