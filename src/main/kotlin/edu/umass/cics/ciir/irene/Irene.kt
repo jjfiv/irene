@@ -50,21 +50,26 @@ class IndexParams {
     var openMode: IndexWriterConfig.OpenMode? = null
     var idFieldName = "id"
 
-    fun withAnalyzer(field: String, analyzer: Analyzer) {
+    fun withAnalyzer(field: String, analyzer: Analyzer): IndexParams {
         perFieldAnalyzers.put(field, analyzer)
+        return this
     }
-    fun inMemory() {
+    fun inMemory(): IndexParams {
         directory = RefCountedIO(MemoryIO())
         create()
+        return this
     }
-    fun withPath(fp: File) {
+    fun withPath(fp: File): IndexParams {
         directory = RefCountedIO(DiskIO.open(fp.toPath()))
+        return this
     }
-    fun create() {
+    fun create(): IndexParams {
         openMode = IndexWriterConfig.OpenMode.CREATE
+        return this
     }
-    fun append() {
+    fun append(): IndexParams {
         openMode = IndexWriterConfig.OpenMode.CREATE_OR_APPEND
+        return this
     }
     val analyzer: Analyzer
             get() = if (perFieldAnalyzers.isEmpty()) {
