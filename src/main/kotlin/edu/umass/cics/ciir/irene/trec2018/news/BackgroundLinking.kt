@@ -2,6 +2,7 @@ package edu.umass.cics.ciir.irene.trec2018.news
 
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
+import edu.umass.cics.ciir.irene.LDoc
 import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.lang.AndExpr
 import edu.umass.cics.ciir.irene.lang.DenseLongField
@@ -29,6 +30,26 @@ fun loadBGLinkQueries(path: String): List<TrecNewsBGLinkQuery> {
     }
 }
 
+data class WapoDocument(
+        val id: String,
+        val published_date: Long?,
+        val url: String,
+        val kind: String?,
+        val title: String?,
+        val author: String?,
+        val body: String
+)
+
+fun fromLucene(index: IreneIndex, doc: LDoc) = WapoDocument(
+        doc.get(index.idFieldName),
+        doc.getField("published_date")?.numericValue()?.toLong(),
+        doc.get("url"),
+        doc.get("kind"),
+        doc.get("title"),
+        doc.get("author"),
+        doc.get(index.defaultField)
+)
+
 /**
  * @author jfoley
  */
@@ -42,10 +63,13 @@ fun main(args: Array<String>) {
     IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
         for (q in queries) {
             val docNo = index.documentById(q.docid) ?: error("Missing document for ${q.qid}")
-            val docP = index.docAsParameters(docNo) ?: error("Missing document fields for ${q.qid}")
-            val tokens = index.tokenize(docP.getString(index.defaultField) ?: "")
+            val lDoc = index.document(docNo) ?: error("Missing document fields for ${q.qid} internally: $docNo")
+            val doc = fromLucene(index, lDoc);
+            //val docP = index.docAsParameters(docNo) ?: error("Missing document fields for ${q.qid}")
+            val tokens = index.tokenize(doc.body)
 
-            val time = docP.get("published_date", 0L)
+            val time = doc.published_date ?: 0L;
+            assert(time >= 0L);
 
             val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
             val countBefore = index.count(publishedBeforeExpr)
@@ -66,7 +90,7 @@ fun main(args: Array<String>) {
             val rmExpr = rm.toQExpr(100)
             val finalExpr = RequireExpr(AndExpr(listOf(rmExpr, publishedBeforeExpr)), rmExpr).deepCopy()
 
-            println("${q.qid}, $docNo ${docP.get("title")}\n\t${terms}\n\t${countBefore}")
+            println("${q.qid}, $docNo ${doc.title}\n\t${terms}\n\t${countBefore}")
 
             val (scoring_time, results) = timed { index.search(finalExpr, 100) }
 
