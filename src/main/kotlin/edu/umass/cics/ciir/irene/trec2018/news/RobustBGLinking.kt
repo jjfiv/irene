@@ -79,9 +79,9 @@ fun main(args: Array<String>) {
         }
 
         for (mu in listOf(3000,3500,4000)) {
-            for (lambda in listOf(0, 1,2,3)) {
-                for (nt in listOf(10,20,50,100,200)) {
-                    for (wds in listOf(8,16,32)) {
+            for (lambda in listOf(0,1,2,3)) {
+                for (nt in listOf(10,20,50,100)) {
+                    for (wds in listOf(4,8,12,16)) {
                         val msrs = NamedMeasures()
                         val (ltr_timing) = timed {
                             queryToDocNo.forEach { (qid, info) ->
