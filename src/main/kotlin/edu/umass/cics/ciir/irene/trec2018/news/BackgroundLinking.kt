@@ -4,17 +4,17 @@ import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.LDoc
 import edu.umass.cics.ciir.irene.galago.inqueryStop
-import edu.umass.cics.ciir.irene.lang.AndExpr
-import edu.umass.cics.ciir.irene.lang.DenseLongField
-import edu.umass.cics.ciir.irene.lang.LongLTE
-import edu.umass.cics.ciir.irene.lang.RequireExpr
+import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel
+import edu.umass.cics.ciir.irene.utils.forAllPairs
+import edu.umass.cics.ciir.irene.utils.normalize
 import edu.umass.cics.ciir.irene.utils.timed
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import gnu.trove.map.hash.TObjectIntHashMap
 import org.jsoup.Jsoup
 import org.lemurproject.galago.utility.Parameters
 import java.io.File
+import java.lang.Math.abs
 
 data class TrecNewsBGLinkQuery(val qid: String, val docid: String, val url: String)
 
@@ -57,6 +57,7 @@ val BackgroundLinkingDepth = 100;
  */
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args);
+    val NumTerms = argp.get("numFBTerms", 20)
     val indexPath = File(argp.get("index", "wapo.irene"))
     if (!indexPath.exists()) error("--index=$indexPath does not exist yet.")
     val queries = loadBGLinkQueries(argp.get("queries", "/Users/jfoley/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"));
@@ -88,20 +89,80 @@ fun main(args: Array<String>) {
                 true
             }
             val rm = RelevanceModel(weights, index.defaultField)
-            val terms = rm.toTerms(10).map { it.term }
-            val rmExpr = rm.toQExpr(10)
+            val terms = rm.toTerms(NumTerms).map { it.term }
+
+            // Identify dependencies from document given RM terms and weights:
+            val positions = hashMapOf<String, MutableList<Int>>()
+            for (i in tokens.indices) {
+                terms.find { it == tokens[i] }?.let { found ->
+                    positions.computeIfAbsent(found, {ArrayList()}).add(i)
+                }
+            }
+            val mins = hashMapOf<Pair<String,String>, Int>()
+            positions.keys.toList().forAllPairs { lhs, rhs ->
+                if (lhs == rhs) {
+                    return@forAllPairs
+                }
+                val lp = positions[lhs]!!
+                val rp = positions[rhs]!!
+
+                var min = Integer.MAX_VALUE
+                for (li in lp) {
+                    for (ri in rp) {
+                        val newMin = abs(ri - li)
+                        if (min > newMin) {
+                            min = newMin
+                        }
+                    }
+                }
+                if (min <= 8) {
+                    mins.put(Pair(lhs, rhs), min)
+                }
+            }
+
+            val bigramWeights = arrayListOf<Double>()
+            val bigramNodes = mins.keys.map { (lhs, rhs) ->
+                val importance = rm.weights[lhs] * rm.weights[rhs]
+                bigramWeights.add(importance)
+                DirQLExpr(SmallerCountExpr(listOf(TextExpr(lhs), TextExpr(rhs)))).weighted(importance)
+            };
+            val uww = CombineExpr(bigramNodes, bigramWeights.normalize())
+
+            val rmExpr = SumExpr(rm.toQExpr(NumTerms).weighted(0.8), uww.weighted(0.2));
             val finalExpr = RequireExpr(AndExpr(listOf(rmExpr, publishedBeforeExpr)), rmExpr).deepCopy()
 
             println("${q.qid}, $docNo ${doc.title}\n\t${doc.url}\n\t${terms}\n\t${countBefore}")
 
-            val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth) }
+            val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth*2) }
+            println("Scoring time: $scoring_time")
 
-            val before_time = results.scoreDocs.map {
-                (index.getField(it.doc, "published_date")?.numericValue() ?: 0L).toLong()
-            }.count { pd -> pd <= time }
-            println("Found appropriate timeliness: ${before_time}/${results.scoreDocs.size}")
-            if (results.scoreDocs.mapTo(HashSet()) { it.doc } .contains(docNo)) {
-                println("Found self in ${scoring_time}")
+            val titles = hashMapOf<Int, String>()
+            for (sd in results.scoreDocs) {
+                index.getField(sd.doc, "title")?.stringValue()?.let {
+                    titles.put(sd.doc, it)
+                }
+            }
+            val titleDedup = results.scoreDocs
+                    // reject duplicates:
+                    .filter {
+                        val title = titles.get(it.doc)
+                        // hard-feature: has-title and most recent version:
+                        title != null && title != "null" && title != titles.get(it.doc+1)
+                    }
+                    // TODO: reject opinion/editorial?
+
+            val position = titleDedup.indexOfFirst { it.doc == docNo }
+            val selfMRR = if (position < 0) {
+                0.0
+            } else {
+                1.0 / (position+1)
+            }
+            val recommendations = titleDedup.filter { it.doc != docNo }
+            println("Self-MRR: $selfMRR, ${recommendations.size}")
+            for (r in recommendations.take(5)) {
+                val title = index.getField(r.doc, "title")?.stringValue()
+                val id = index.getField(r.doc, "id")!!.stringValue()
+                println("\t\t${r.doc} ... ${id} ... ${title}");
             }
         }
     }
