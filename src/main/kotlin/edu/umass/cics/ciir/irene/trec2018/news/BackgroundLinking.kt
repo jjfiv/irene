@@ -87,10 +87,10 @@ fun main(args: Array<String>) {
             }
             val rm = RelevanceModel(weights, index.defaultField)
             val terms = rm.toTerms(10).map { it.term }
-            val rmExpr = rm.toQExpr(100)
+            val rmExpr = rm.toQExpr(10)
             val finalExpr = RequireExpr(AndExpr(listOf(rmExpr, publishedBeforeExpr)), rmExpr).deepCopy()
 
-            println("${q.qid}, $docNo ${doc.title}\n\t${terms}\n\t${countBefore}")
+            println("${q.qid}, $docNo ${doc.title}\n\t${doc.url}\n\t${terms}\n\t${countBefore}")
 
             val (scoring_time, results) = timed { index.search(finalExpr, 100) }
 

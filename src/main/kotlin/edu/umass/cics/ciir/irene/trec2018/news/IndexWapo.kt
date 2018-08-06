@@ -56,8 +56,15 @@ fun main(args: Array<String>) {
 
                 // Collect disjoint paragraphs:
                 val paragraphs = ArrayList<String>()
-                val pblobs = (article.contents ?: emptyList()).filterNotNull().filter { it.subtype == "paragraph" }
-                for (blob in pblobs) {
+                val blobs = (article.contents ?: emptyList()).filterNotNull();
+
+                // So we can elide Opinion and Editorial content
+                val kicker = blobs.find { it.type == "kicker" }?.content
+                if (kicker != null && kicker is String) {
+                    setTextField("kicker", kicker)
+                }
+
+                for (blob in blobs.filter { it.subtype == "paragraph" }) {
                     if (blob.content is String) {
                         val html = Jsoup.parse(blob.content).text()
                         paragraphs.add(html)

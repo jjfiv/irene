@@ -30,6 +30,7 @@ fun main(args: Array<String>) {
                 val altNames = ArrayList<String>()
                 altNames.addAll(page.pageMetadata.disambiguationNames)
                 altNames.addAll(page.pageMetadata.inlinkAnchors)
+                altNames.addAll(page.pageMetadata.redirectNames)
                 setTextField("names", altNames.joinToString(separator="\t"))
                 setTextField(params.defaultField, page.flatSectionPathsParagraphs().joinToString(separator = "\n\n") { it.paragraph.textOnly })
             }
