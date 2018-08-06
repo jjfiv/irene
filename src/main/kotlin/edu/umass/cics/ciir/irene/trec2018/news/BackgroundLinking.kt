@@ -50,6 +50,8 @@ fun fromLucene(index: IreneIndex, doc: LDoc) = WapoDocument(
         doc.get(index.defaultField)
 )
 
+val BackgroundLinkingDepth = 100;
+
 /**
  * @author jfoley
  */
@@ -92,7 +94,7 @@ fun main(args: Array<String>) {
 
             println("${q.qid}, $docNo ${doc.title}\n\t${doc.url}\n\t${terms}\n\t${countBefore}")
 
-            val (scoring_time, results) = timed { index.search(finalExpr, 100) }
+            val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth) }
 
             val before_time = results.scoreDocs.map {
                 (index.getField(it.doc, "published_date")?.numericValue() ?: 0L).toLong()

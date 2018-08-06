@@ -32,6 +32,7 @@ fun main(args: Array<String>) {
                 altNames.addAll(page.pageMetadata.inlinkAnchors)
                 altNames.addAll(page.pageMetadata.redirectNames)
                 setTextField("names", altNames.joinToString(separator="\t"))
+                setTextField("categories", page.pageMetadata.categoryNames.joinToString(separator="\t"))
                 setTextField(params.defaultField, page.flatSectionPathsParagraphs().joinToString(separator = "\n\n") { it.paragraph.textOnly })
             }
             msg.incr()?.let {
