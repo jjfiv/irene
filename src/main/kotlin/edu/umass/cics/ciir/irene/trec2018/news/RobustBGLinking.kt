@@ -29,7 +29,7 @@ fun main(args: Array<String>) {
     val qrels = QuerySetJudgments.loadJudgments(argp.get("qrel",
             "/Users/jfoley/code/queries/robust04/robust04.qrels"),
             false, true)
-    val params = IndexParams().withPath(File("robust04.irene"))
+    val params = IndexParams().withPath(File(argp.get("index", "robust04.irene")))
 
     val splits = hashMapOf<Int,MutableList<String>>()
     qrels.keys.toList().shuffled().forEachIndexed { i,qid ->
@@ -46,7 +46,7 @@ fun main(args: Array<String>) {
     val rand = Random(42)
     IreneIndex(params).use {index ->
         index.env.defaultDirichletMu = 4000.0
-        val trainingSet = qrels.entries.sample(30)
+        val trainingSet = qrels.entries.sample(argp.get("train", 30), rand)
         val testSet = qrels.entries.filter { it !in trainingSet }
 
         val msg = CountingDebouncer(trainingSet.size.toLong())
@@ -99,7 +99,7 @@ fun main(args: Array<String>) {
                                 msrs.push("ndcg5", ndcg5.evaluate(QueryResults(qid, scored), info.judgments))
                             }
                         }
-                        println(String.format("$mu\t$lambda\t$nt\t%1.3f\t%1.3f\t%1.3f", msrs["ndcg"].mean, msrs["ndcg5"].mean, ltr_timing))
+                        println(String.format("$mu\t$lambda\t$nt\t$wds\t%1.3f\t%1.3f\t%1.3f", msrs["ndcg"].mean, msrs["ndcg5"].mean, ltr_timing))
                     }
                 }
             }
