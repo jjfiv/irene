@@ -21,7 +21,7 @@ data class TrecNewsBGLinkQuery(val qid: String, val docid: String, val url: Stri
 fun loadBGLinkQueries(path: String): List<TrecNewsBGLinkQuery> {
     val trecXMLDoc = File(path)
     if (!trecXMLDoc.exists()) error("TREC News BG Linking Query file not found at: $path")
-    val doc = Jsoup.parse(trecXMLDoc, "UTF-8");
+    val doc = Jsoup.parse(trecXMLDoc, "UTF-8")
     return doc.select("top").map { query ->
         val qid = query.selectFirst("num").text().substringAfter("Number:").trim()
         val docid = query.selectFirst("docid").text().trim()
@@ -50,88 +50,101 @@ fun fromLucene(index: IreneIndex, doc: LDoc) = WapoDocument(
         doc.get(index.defaultField)
 )
 
-val BackgroundLinkingDepth = 100;
+val BackgroundLinkingDepth = 100
+
+fun documentVectorToQuery(tokens: List<String>, numTerms: Int,
+                          stopwords: Set<String> = inqueryStop,
+                          targetField: String? = null,
+                          windowDetectionSize: Int = 8,
+                          proxToExpr: (List<QExpr>) -> QExpr = {SmallerCountExpr(it)},
+                          unigramWeight: Double = 0.8): QExpr {
+    val counts = TObjectIntHashMap<String>()
+    val length = tokens.size.toDouble()
+    for (t in tokens) {
+        if (stopwords.contains(t)) continue
+        counts.adjustOrPutValue(t, 1, 1)
+    }
+    val weights = TObjectDoubleHashMap<String>()
+    counts.forEachEntry {term, count ->
+        weights.put(term, count / length)
+        true
+    }
+    val rm = RelevanceModel(weights, targetField)
+    val terms = rm.toTerms(numTerms).map { it.term }
+
+    // Identify dependencies from document given RM terms and weights:
+    val positions = hashMapOf<String, MutableList<Int>>()
+    for (i in tokens.indices) {
+        terms.find { it == tokens[i] }?.let { found ->
+            positions.computeIfAbsent(found, {ArrayList()}).add(i)
+        }
+    }
+    val mins = hashMapOf<Pair<String,String>, Int>()
+    positions.keys.toList().forAllPairs { lhs, rhs ->
+        if (lhs == rhs) {
+            return@forAllPairs
+        }
+        val lp = positions[lhs]!!
+        val rp = positions[rhs]!!
+
+        var min = Integer.MAX_VALUE
+        for (li in lp) {
+            for (ri in rp) {
+                val newMin = abs(ri - li)
+                if (min > newMin) {
+                    min = newMin
+                }
+            }
+        }
+        if (min <= windowDetectionSize) {
+            mins.put(Pair(lhs, rhs), min)
+        }
+    }
+
+    val bigramWeights = arrayListOf<Double>()
+    val bigramNodes = mins.keys.map { (lhs, rhs) ->
+        val importance = rm.weights[lhs] * rm.weights[rhs]
+        bigramWeights.add(importance)
+        DirQLExpr(proxToExpr(listOf(TextExpr(lhs), TextExpr(rhs)))).weighted(importance)
+    }
+    val uww = CombineExpr(bigramNodes, bigramWeights.normalize())
+
+    if (unigramWeight == 0.0) {
+        return uww
+    } else if (unigramWeight == 1.0) {
+        return rm.toQExpr(numTerms)
+    }
+    return SumExpr(rm.toQExpr(numTerms).weighted(unigramWeight), uww.weighted(1.0-unigramWeight))
+}
 
 /**
  * @author jfoley
  */
 fun main(args: Array<String>) {
-    val argp = Parameters.parseArgs(args);
-    val NumTerms = argp.get("numFBTerms", 20)
+    val argp = Parameters.parseArgs(args)
+    val NumTerms = argp.get("numFBTerms", 50)
     val indexPath = File(argp.get("index", "wapo.irene"))
     if (!indexPath.exists()) error("--index=$indexPath does not exist yet.")
-    val queries = loadBGLinkQueries(argp.get("queries", "/Users/jfoley/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"));
-    val stopwords = inqueryStop
+    val queries = loadBGLinkQueries(argp.get("queries", "/Users/jfoley/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"))
 
     IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
+        index.env.defaultDirichletMu = 4000.0
         for (q in queries) {
             val docNo = index.documentById(q.docid) ?: error("Missing document for ${q.qid}")
             val lDoc = index.document(docNo) ?: error("Missing document fields for ${q.qid} internally: $docNo")
-            val doc = fromLucene(index, lDoc);
+            val doc = fromLucene(index, lDoc)
             //val docP = index.docAsParameters(docNo) ?: error("Missing document fields for ${q.qid}")
             val tokens = index.tokenize(doc.body)
 
-            val time = doc.published_date ?: 0L;
-            assert(time >= 0L);
+            val time = doc.published_date ?: 0L
+            assert(time >= 0L)
 
             val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
             val countBefore = index.count(publishedBeforeExpr)
-
-            val counts = TObjectIntHashMap<String>()
-            val length = tokens.size.toDouble()
-            for (t in tokens) {
-                if (stopwords.contains(t)) continue
-                counts.adjustOrPutValue(t, 1, 1);
-            }
-            val weights = TObjectDoubleHashMap<String>()
-            counts.forEachEntry {term, count ->
-                weights.put(term, count / length)
-                true
-            }
-            val rm = RelevanceModel(weights, index.defaultField)
-            val terms = rm.toTerms(NumTerms).map { it.term }
-
-            // Identify dependencies from document given RM terms and weights:
-            val positions = hashMapOf<String, MutableList<Int>>()
-            for (i in tokens.indices) {
-                terms.find { it == tokens[i] }?.let { found ->
-                    positions.computeIfAbsent(found, {ArrayList()}).add(i)
-                }
-            }
-            val mins = hashMapOf<Pair<String,String>, Int>()
-            positions.keys.toList().forAllPairs { lhs, rhs ->
-                if (lhs == rhs) {
-                    return@forAllPairs
-                }
-                val lp = positions[lhs]!!
-                val rp = positions[rhs]!!
-
-                var min = Integer.MAX_VALUE
-                for (li in lp) {
-                    for (ri in rp) {
-                        val newMin = abs(ri - li)
-                        if (min > newMin) {
-                            min = newMin
-                        }
-                    }
-                }
-                if (min <= 8) {
-                    mins.put(Pair(lhs, rhs), min)
-                }
-            }
-
-            val bigramWeights = arrayListOf<Double>()
-            val bigramNodes = mins.keys.map { (lhs, rhs) ->
-                val importance = rm.weights[lhs] * rm.weights[rhs]
-                bigramWeights.add(importance)
-                DirQLExpr(SmallerCountExpr(listOf(TextExpr(lhs), TextExpr(rhs)))).weighted(importance)
-            };
-            val uww = CombineExpr(bigramNodes, bigramWeights.normalize())
-
-            val rmExpr = SumExpr(rm.toQExpr(NumTerms).weighted(0.8), uww.weighted(0.2));
+            val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField=index.defaultField)
             val finalExpr = RequireExpr(AndExpr(listOf(rmExpr, publishedBeforeExpr)), rmExpr).deepCopy()
 
-            println("${q.qid}, $docNo ${doc.title}\n\t${doc.url}\n\t${terms}\n\t${countBefore}")
+            println("${q.qid}, $docNo ${doc.title}\n\t${doc.url}\n\t${countBefore}")
 
             val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth*2) }
             println("Scoring time: $scoring_time")
@@ -162,7 +175,7 @@ fun main(args: Array<String>) {
             for (r in recommendations.take(5)) {
                 val title = index.getField(r.doc, "title")?.stringValue()
                 val id = index.getField(r.doc, "id")!!.stringValue()
-                println("\t\t${r.doc} ... ${id} ... ${title}");
+                println("\t\t${r.doc} ... ${id} ... ${title}")
             }
         }
     }

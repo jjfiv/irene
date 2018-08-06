@@ -126,11 +126,11 @@ fun List<WeightedTerm>.normalized(): List<WeightedTerm> {
     return this.map { WeightedTerm(it.score / total, it.term) }
 }
 
-data class RelevanceModel(val weights: TObjectDoubleHashMap<String>, val sourceField: String) {
+data class RelevanceModel(val weights: TObjectDoubleHashMap<String>, val sourceField: String?) {
     private fun toTerms(): List<WeightedTerm> {
         val output = ArrayList<WeightedTerm>(weights.size())
         weights.forEachEntry {term, weight ->
-            output.add(WeightedTerm(weight, term, sourceField))
+            output.add(WeightedTerm(weight, term, sourceField ?: ""))
         }
         return output
     }
