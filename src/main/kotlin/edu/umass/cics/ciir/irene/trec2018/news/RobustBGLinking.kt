@@ -81,7 +81,7 @@ fun main(args: Array<String>) {
         for (mu in listOf(3000,3500,4000)) {
             for (lambda in listOf(0,1,2,3)) {
                 for (nt in listOf(10,20,50,100)) {
-                    for (wds in listOf(4,8,12,16)) {
+                    for (wds in listOf(8,16)) {
                         val msrs = NamedMeasures()
                         val (ltr_timing) = timed {
                             queryToDocNo.forEach { (qid, info) ->
@@ -100,7 +100,7 @@ fun main(args: Array<String>) {
                                 msrs.push("ndcg5", ndcg5.evaluate(QueryResults(qid, scored), info.judgments))
                             }
                         }
-                        println(String.format("$mu\t$lambda\t$nt\t$wds\t%1.3f\t%1.3f\t%1.3f", msrs["ndcg"].mean, msrs["ndcg5"].mean, ltr_timing))
+                        println(String.format("$mu\t$lambda\t$nt\t$wds\t%f\t%f\t%1.3f", msrs["ndcg"].mean, msrs["ndcg5"].mean, ltr_timing))
                     }
                 }
             }
