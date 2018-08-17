@@ -1,10 +1,7 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.CountStats
-import edu.umass.cics.ciir.irene.DataNeeded
-import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
+import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.ltr.RREnv
-import edu.umass.cics.ciir.irene.lucene_try
 import org.apache.lucene.index.Term
 import java.util.*
 import kotlin.collections.HashSet
@@ -212,6 +209,10 @@ sealed class SingleChildExpr : QExpr() {
 /** Sync this class to Galago semantics. Consider every doc that has a match IFF cond has a match, using value, regardless of whether value also has a match. */
 data class RequireExpr(var cond: QExpr, var value: QExpr): QExpr() {
     override val children: List<QExpr> get() = arrayListOf(cond, value)
+}
+
+fun BoolExpr(field: String, desired: Boolean=true): QExpr {
+    return TextExpr(BoolField.boolAsStr(desired), field=field, statsField=field)
 }
 
 /**

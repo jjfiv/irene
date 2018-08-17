@@ -58,7 +58,7 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
     }
 
     override fun create(term: Term, needed: DataNeeded): QueryEvalNode {
-        return create(term, needed, getLengths(term.field()))
+        return termCached(term, needed)
     }
 
     override fun selectRelativeDocIds(ids: List<Int>): IntList {
@@ -74,7 +74,7 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
         return output
     }
 
-    private fun termRaw(term: Term, needed: DataNeeded, lengths: NumericDocValues): QueryEvalNode {
+    private fun termRaw(term: Term, needed: DataNeeded): QueryEvalNode {
         val postings = termSeek(term, needed)
                 ?: return LuceneMissingTerm(term)
         return when(needed) {
@@ -85,15 +85,15 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
         }
     }
 
-    private fun termCached(term: Term, needed: DataNeeded, lengths: NumericDocValues): QueryEvalNode {
+    private fun termCached(term: Term, needed: DataNeeded): QueryEvalNode {
         return if (env.shareIterators) {
             val entry = iterNeeds[term]
             if (entry == null || entry < needed) {
                 error("Forgot to call .setup(q) on IQContext. While constructing $term $needed $entry...")
             }
-            evalCache.computeIfAbsent(term, { termRaw(term, entry, lengths) })
+            evalCache.computeIfAbsent(term, { termRaw(term, entry) })
         } else {
-            termRaw(term, needed, lengths)
+            termRaw(term, needed)
         }
     }
     fun termMover(term: Term): QueryMover {
@@ -112,9 +112,6 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
         return postings
     }
 
-    fun create(term: Term, needed: DataNeeded, lengths: NumericDocValues): QueryEvalNode {
-        return termCached(term, needed, lengths)
-    }
     fun shardIdentity(): Any = context.id()
     override fun numDocs(): Int = context.reader().numDocs()
 
@@ -139,7 +136,7 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
             foldOperators.findTextNodes().map { q ->
                 val term = Term(q.countsField(), q.text)
                 val needed = q.needed
-                iterNeeds.compute(term, { missing, prev ->
+                iterNeeds.compute(term, { _, prev ->
                     if (prev == null) {
                         needed
                     } else {
