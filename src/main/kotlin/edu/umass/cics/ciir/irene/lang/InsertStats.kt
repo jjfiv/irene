@@ -28,6 +28,7 @@ fun insertStats(env: RREnv, input: QExpr) = qmap(input) { q ->
         is OrderedWindowExpr,
         is ProxExpr,
         is RequireExpr,
+        is MustExpr,
         is SmallerCountExpr,
         is SynonymExpr,
         is TextExpr,

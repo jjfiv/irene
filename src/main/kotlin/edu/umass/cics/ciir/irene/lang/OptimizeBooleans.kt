@@ -172,6 +172,15 @@ fun simplifyBools(input: QExpr, ctx: FixedPointBooleanSimplification): QExpr {
             AlwaysMatchLeaf,
             is TextExpr -> q
 
+            // And behavior:
+            is MustExpr -> if (q.must is AlwaysMatchLeaf) {
+                q.value
+            } else if (q.must is NeverMatchLeaf) {
+                NeverMatchLeaf
+            } else {
+                q
+            }
+
         // default, just pass through:
             NeverMatchLeaf,
             is AbsoluteDiscountingQLExpr,

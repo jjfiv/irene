@@ -24,6 +24,7 @@ private fun createMoverRec(q: QExpr, ctx: IQContext) : QueryMover = when(q) {
     AlwaysMatchLeaf, is LengthsExpr -> AlwaysMatchMover(q.toString(), ctx.numDocs())
 
 // AND nodes:
+    is MustExpr,
     is ProxExpr, is UnorderedWindowCeilingExpr, is SmallerCountExpr,
     is AndExpr, is OrderedWindowExpr, is UnorderedWindowExpr -> createAndMover(q.children.map { createMoverRec(it, ctx) }, ctx.numDocs())
 
