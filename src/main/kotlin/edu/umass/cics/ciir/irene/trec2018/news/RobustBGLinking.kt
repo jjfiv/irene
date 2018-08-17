@@ -5,8 +5,7 @@ import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.LuceneTokenizer
 import edu.umass.cics.ciir.irene.galago.NamedMeasures
 import edu.umass.cics.ciir.irene.galago.toQueryResults
-import edu.umass.cics.ciir.irene.lang.QExpr
-import edu.umass.cics.ciir.irene.lang.UnorderedWindowExpr
+import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.toRRExpr
 import edu.umass.cics.ciir.irene.scoring.ILTRDocField
 import edu.umass.cics.ciir.irene.scoring.LTRDoc
@@ -81,14 +80,14 @@ fun main(args: Array<String>) {
         for (mu in listOf(3000,3500,4000)) {
             for (lambda in listOf(0,1,2,3)) {
                 for (nt in listOf(10,20,50,100)) {
-                    for (wds in listOf(8,16)) {
+                    for (wds in listOf(8)) {
                         val msrs = NamedMeasures()
                         val (ltr_timing) = timed {
                             queryToDocNo.forEach { (qid, info) ->
                                 val query = documentVectorToQuery(info.tokens, nt,
                                         targetField = index.defaultField,
                                         unigramWeight = lambda / 10.0,
-                                        proxToExpr = { UnorderedWindowExpr(it, wds) })
+                                        proxToExpr = { SmallerCountExpr(it) })
                                 //index.env.defaultDirichletMu = mu.toDouble()
                                 val expr = query.toRRExpr(index.env)
 
