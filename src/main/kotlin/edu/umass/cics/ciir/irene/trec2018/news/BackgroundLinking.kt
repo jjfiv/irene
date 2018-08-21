@@ -6,12 +6,16 @@ import edu.umass.cics.ciir.irene.LDoc
 import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel
+import edu.umass.cics.ciir.irene.trec2018.defaultWapoIndexPath
 import edu.umass.cics.ciir.irene.utils.forAllPairs
 import edu.umass.cics.ciir.irene.utils.normalize
+import edu.umass.cics.ciir.irene.utils.smartPrinter
 import edu.umass.cics.ciir.irene.utils.timed
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import gnu.trove.map.hash.TObjectIntHashMap
 import org.jsoup.Jsoup
+import org.lemurproject.galago.core.eval.QueryResults
+import org.lemurproject.galago.core.eval.SimpleEvalDoc
 import org.lemurproject.galago.utility.Parameters
 import java.io.File
 import java.lang.Math.abs
@@ -56,6 +60,7 @@ fun documentVectorToQuery(tokens: List<String>, numTerms: Int,
                           stopwords: Set<String> = inqueryStop,
                           targetField: String? = null,
                           windowDetectionSize: Int = 8,
+                          scorer: (QExpr) -> QExpr = { DirQLExpr(it) },
                           proxToExpr: (List<QExpr>) -> QExpr = {SmallerCountExpr(it)},
                           unigramWeight: Double = 0.8): QExpr {
     val counts = TObjectIntHashMap<String>()
@@ -105,16 +110,67 @@ fun documentVectorToQuery(tokens: List<String>, numTerms: Int,
     val bigramNodes = mins.keys.map { (lhs, rhs) ->
         val importance = rm.weights[lhs] * rm.weights[rhs]
         bigramWeights.add(importance)
-        DirQLExpr(proxToExpr(listOf(TextExpr(lhs), TextExpr(rhs)))).weighted(importance)
+        scorer(proxToExpr(listOf(TextExpr(lhs), TextExpr(rhs)))).weighted(importance)
     }
     val uww = CombineExpr(bigramNodes, bigramWeights.normalize())
 
     if (unigramWeight == 0.0) {
         return uww
     } else if (unigramWeight == 1.0) {
-        return rm.toQExpr(numTerms)
+        return rm.toQExpr(numTerms, scorer=scorer)
     }
-    return SumExpr(rm.toQExpr(numTerms).weighted(unigramWeight), uww.weighted(1.0-unigramWeight))
+    return SumExpr(rm.toQExpr(numTerms, scorer=scorer).weighted(unigramWeight), uww.weighted(1.0-unigramWeight))
+}
+
+val skipTheseKickers = setOf("Opinions", "Letters to the Editor", "Opinion", "The Post's View")
+
+fun executeBackgroundLinkingQuery(q: TrecNewsBGLinkQuery, index: IreneIndex, docNo: Int, doc: WapoDocument, query: QExpr): QueryResults {
+    val time = doc.published_date ?: 0L
+    assert(time >= 0L)
+
+    val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
+    val countBefore = index.count(publishedBeforeExpr)
+    val finalExpr = MustExpr(publishedBeforeExpr, query).deepCopy()
+
+    println("${q.qid}, ${doc.title}\n\t${doc.url}\n\t$countBefore")
+
+    val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth*2) }
+    println("Scoring time: $scoring_time")
+
+    val titles = hashMapOf<Int, String>()
+    val kickers = hashMapOf<Int, String>()
+    for (sd in results.scoreDocs) {
+        index.getField(sd.doc, "title")?.stringValue()?.let {
+            titles.put(sd.doc, it)
+        }
+        index.getField(sd.doc, "kicker")?.stringValue()?.let {
+            kickers.put(sd.doc, it)
+        }
+    }
+    val titleDedup = results.scoreDocs
+            // reject duplicates:
+            .filter {
+                val title = titles.get(it.doc)
+                // hard-feature: has-title and most recent version:
+                title != null && title != "null" && title != titles.get(it.doc+1)
+            }
+            .filterNot {
+                // Reject opinion/editorial.
+                skipTheseKickers.contains(kickers[it.doc] ?: "null")
+            }
+
+    val position = titleDedup.indexOfFirst { it.doc == docNo }
+    val selfMRR = if (position < 0) {
+        0.0
+    } else {
+        1.0 / (position+1)
+    }
+    val recommendations = titleDedup.filter { it.doc != docNo }
+    println("Self-MRR: $selfMRR, ${recommendations.size}")
+
+    return QueryResults(q.qid, recommendations.take(100).mapIndexed { idx, sd ->
+        SimpleEvalDoc(index.getDocumentName(sd.doc), idx+1, sd.score.toDouble())
+    })
 }
 
 /**
@@ -123,60 +179,52 @@ fun documentVectorToQuery(tokens: List<String>, numTerms: Int,
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args)
     val NumTerms = argp.get("numFBTerms", 50)
-    val indexPath = File(argp.get("index", "wapo.irene"))
+    val indexPath = File(argp.get("index", defaultWapoIndexPath))
     if (!indexPath.exists()) error("--index=$indexPath does not exist yet.")
-    val queries = loadBGLinkQueries(argp.get("queries", "/Users/jfoley/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"))
+    val queries = loadBGLinkQueries(argp.get("queries", "${System.getenv("HOME")}/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"))
+
+
+    val cbrdmOutput = File("umass_cbrdm.news.bg.trecrun.gz").smartPrinter()
+    val rmOutput = File("umass_rm.news.bg.trecrun.gz").smartPrinter()
+    val rdmOutput = File("umass_rdm.news.bg.trecrun.gz").smartPrinter()
 
     IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
-        index.env.defaultDirichletMu = 4000.0
+        index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
+        index.env.optimizeDirLog = false
+        index.env.optimizeBM25 = true
+
         for (q in queries) {
             val docNo = index.documentById(q.docid) ?: error("Missing document for ${q.qid}")
             val lDoc = index.document(docNo) ?: error("Missing document fields for ${q.qid} internally: $docNo")
             val doc = fromLucene(index, lDoc)
-            //val docP = index.docAsParameters(docNo) ?: error("Missing document fields for ${q.qid}")
             val tokens = index.tokenize(doc.body)
 
-            val time = doc.published_date ?: 0L
-            assert(time >= 0L)
+            synchronized(index.env) {
+                index.env.estimateStats = "min"
+                val scorer: (QExpr)->QExpr = {q -> BM25Expr(q)}
 
-            val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
-            val countBefore = index.count(publishedBeforeExpr)
-            val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField=index.defaultField)
-            val finalExpr = RequireExpr(AndExpr(listOf(rmExpr, publishedBeforeExpr)), rmExpr).deepCopy()
-
-            println("${q.qid}, $docNo ${doc.title}\n\t${doc.url}\n\t${countBefore}")
-
-            val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth*2) }
-            println("Scoring time: $scoring_time")
-
-            val titles = hashMapOf<Int, String>()
-            for (sd in results.scoreDocs) {
-                index.getField(sd.doc, "title")?.stringValue()?.let {
-                    titles.put(sd.doc, it)
-                }
+                val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField, scorer = scorer)
+                val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr)
+                qres.outputTrecrun(cbrdmOutput, "umass_cbrdm")
             }
-            val titleDedup = results.scoreDocs
-                    // reject duplicates:
-                    .filter {
-                        val title = titles.get(it.doc)
-                        // hard-feature: has-title and most recent version:
-                        title != null && title != "null" && title != titles.get(it.doc+1)
-                    }
-                    // TODO: reject opinion/editorial?
 
-            val position = titleDedup.indexOfFirst { it.doc == docNo }
-            val selfMRR = if (position < 0) {
-                0.0
-            } else {
-                1.0 / (position+1)
+            synchronized(index.env) {
+                index.env.estimateStats = null
+                val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField, unigramWeight = 1.0)
+                val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr)
+                qres.outputTrecrun(rmOutput, "umass_rm")
             }
-            val recommendations = titleDedup.filter { it.doc != docNo }
-            println("Self-MRR: $selfMRR, ${recommendations.size}")
-            for (r in recommendations.take(5)) {
-                val title = index.getField(r.doc, "title")?.stringValue()
-                val id = index.getField(r.doc, "id")!!.stringValue()
-                println("\t\t${r.doc} ... ${id} ... ${title}")
+
+            synchronized(index.env) {
+                index.env.estimateStats = null
+                val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField)
+                val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr)
+                qres.outputTrecrun(rdmOutput, "umass_rdm")
             }
         }
     }
+
+    rmOutput.close()
+    rdmOutput.close()
+    cbrdmOutput.close()
 }
