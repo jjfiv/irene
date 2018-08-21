@@ -144,6 +144,31 @@ class LDocBuilder(val params: IndexParams) {
         }
         fields[field] = listOf(StringField(field, categorical, storeBoolean(stored)))
     }
+    fun maybeIntPoint(field: String, num: Int?, stored: Boolean=true) {
+        if (num == null) return;
+        if (fields.containsKey(field)) {
+            error("Already specified $field for this document $fields.")
+        }
+        val keep  = arrayListOf<IndexableField>(
+                IntPoint(field, num)
+        )
+        if (stored) {
+            keep.add(StoredField(field, num))
+        }
+        fields[field] = keep
+    }
+    fun setDenseFloatField(field: String, num: Float, stored: Boolean=true) {
+        if (fields.containsKey(field)) {
+            error("Already specified $field for this document $fields.")
+        }
+        val keep  = arrayListOf<IndexableField>(
+                NumericDocValuesField(field, num.toRawBits().toLong())
+        )
+        if (stored) {
+            keep.add(StoredField(field, num))
+        }
+        fields[field] = keep
+    }
     fun setDenseIntField(field: String, num: Int, stored: Boolean=true) {
         if (fields.containsKey(field)) {
             error("Already specified $field for this document $fields.")

@@ -1,10 +1,8 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.CountStats
-import edu.umass.cics.ciir.irene.DataNeeded
-import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
+import edu.umass.cics.ciir.irene.*
+import edu.umass.cics.ciir.irene.scoring.*
 import edu.umass.cics.ciir.irene.ltr.RREnv
-import edu.umass.cics.ciir.irene.lucene_try
 import org.apache.lucene.index.Term
 import java.util.*
 import kotlin.collections.HashSet
@@ -47,6 +45,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         is BoolToScoreExpr -> mapper(BoolToScoreExpr(qmap(q.child, mapper)))
         is CountToBoolExpr -> mapper(CountToBoolExpr(qmap(q.child, mapper)))
         is RequireExpr -> mapper(RequireExpr(qmap(q.cond, mapper), qmap(q.value, mapper)))
+        is MustExpr -> mapper(MustExpr(qmap(q.must, mapper), qmap(q.value, mapper)))
         is LongLTE -> mapper(LongLTE(qmap(q.child, mapper), q.threshold))
     }
 }
@@ -209,9 +208,25 @@ sealed class SingleChildExpr : QExpr() {
     abstract var child: QExpr
     override val children: List<QExpr> get() = listOf(child)
 }
-/** Sync this class to Galago semantics. Consider every doc that has a match IFF cond has a match, using value, regardless of whether value also has a match. */
+/**
+ * Sync this class to Galago semantics.
+ *  - Consider every doc that has a match IFF cond has a match, using value, regardless of whether value also has a match.
+ *  - Implemented by [RequireEval].
+ *  - If instead you want to score value only if cond has a match, use [MustExpr] -> [MustEval].
+ */
 data class RequireExpr(var cond: QExpr, var value: QExpr): QExpr() {
     override val children: List<QExpr> get() = arrayListOf(cond, value)
+}
+
+/**
+ * Score the [value] query when it matches IFF [must] also has a match. This is a logical AND.
+ */
+data class MustExpr(var must: QExpr, var value: QExpr): QExpr() {
+    override val children: List<QExpr> get() = arrayListOf(must, value)
+}
+
+fun BoolExpr(field: String, desired: Boolean=true): QExpr {
+    return TextExpr(BoolField.boolAsStr(desired), field=field, statsField=field)
 }
 
 /**

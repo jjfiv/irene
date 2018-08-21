@@ -159,6 +159,7 @@ fun combineWeights(input: QExpr, ctx: CombineWeightsFixedPoint): QExpr = qmap(in
         is OrderedWindowExpr,
         is ProxExpr,
         is RequireExpr,
+        is MustExpr,
         is SmallerCountExpr,
         is SynonymExpr,
         is LongLTE,
@@ -206,6 +207,11 @@ fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
         is BoolToScoreExpr -> DataNeeded.DOCS
         is CountToBoolExpr -> DataNeeded.COUNTS
         is CountEqualsExpr -> DataNeeded.COUNTS
+        is MustExpr -> {
+            analyzeDataNeededRecursive(q.must, DataNeeded.DOCS)
+            analyzeDataNeededRecursive(q.value, childNeeds)
+            return
+        }
         is RequireExpr -> {
             analyzeDataNeededRecursive(q.cond, DataNeeded.DOCS)
             analyzeDataNeededRecursive(q.value, childNeeds)
@@ -270,6 +276,7 @@ fun reduceSingleChildren(q: QExpr): QExpr = when(q) {
     is BoolToScoreExpr,
     is CountToBoolExpr,
     is LongLTE,
+    is MustExpr,
     is RequireExpr -> q
 }
 

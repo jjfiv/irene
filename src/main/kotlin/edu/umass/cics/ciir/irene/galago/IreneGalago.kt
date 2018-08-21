@@ -82,6 +82,9 @@ private fun toGalagoRecursive(q : QExpr): GExpr {
             setf("k", q.k)
         }
         is BoolToScoreExpr -> GExpr("bool", children(q))
+        is MustExpr -> {
+            TODO("can compile this to Require(And(cond, value), value) but I don't want to test it now.")
+        }
         is RequireExpr -> GExpr("require", listOf(toGalagoRecursive(q.cond), toGalagoRecursive(q.value)))
         is MaxExpr -> TODO()
         is CountToBoolExpr -> TODO()

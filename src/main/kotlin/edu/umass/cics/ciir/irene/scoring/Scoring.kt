@@ -156,6 +156,26 @@ internal class CountEqualsNode(val count: Int, override val child: QueryEvalNode
 }
 
 /**
+ * Created from [MustExpr] via [exprToEval]
+ */
+internal class MustEval(val must: QueryEvalNode, val score: QueryEvalNode): QueryEvalNode {
+    override val children: List<QueryEvalNode> = listOf(must, score)
+    override fun score(env: ScoringEnv): Double = score.score(env)
+    override fun count(env: ScoringEnv): Int = score.count(env)
+    override fun matches(env: ScoringEnv): Boolean = must.matches(env) && score.matches(env)
+    override fun explain(env: ScoringEnv): Explanation {
+        val expls = listOf(must, score).map { it.explain(env) }
+        return if (matches(env)) {
+            Explanation.match(score.score(env).toFloat(), "must-match", expls)
+        } else {
+            Explanation.noMatch("${score.score(env)} for must-miss", expls)
+        }
+    }
+    override fun setHeapMinimum(target: Double) { score.setHeapMinimum(target) }
+    override fun estimateDF(): Long = minOf(score.estimateDF(), must.estimateDF())
+}
+
+/**
  * Created from [RequireExpr] via [exprToEval]
  */
 internal class RequireEval(val cond: QueryEvalNode, val score: QueryEvalNode): QueryEvalNode {

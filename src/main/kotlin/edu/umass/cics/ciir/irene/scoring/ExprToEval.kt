@@ -60,6 +60,7 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
     is BoolToScoreExpr -> TODO()
     is CountToBoolExpr -> TODO()
     is RequireExpr -> RequireEval(exprToEval(q.cond, ctx), exprToEval(q.value, ctx))
+    is MustExpr -> MustEval(exprToEval(q.must, ctx), exprToEval(q.value, ctx))
     is OrderedWindowExpr -> OrderedWindow(
             q.children.map { exprToEval(it, ctx) as PositionsEvalNode }, q.step)
     is UnorderedWindowExpr -> UnorderedWindow(
