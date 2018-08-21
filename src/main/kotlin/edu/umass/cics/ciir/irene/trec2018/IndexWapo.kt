@@ -30,6 +30,8 @@ data class WapoArticle(
         val contents: List<WapoContent?>?
 )
 
+val defaultWapoIndexPath = "/mnt/scratch/jfoley/trec-news-2018/wapo.irene"
+
 fun main(args: Array<String>) {
     val mapper = ObjectMapper().registerKotlinModule()
     val argp = Parameters.parseArgs(args)
@@ -38,7 +40,7 @@ fun main(args: Array<String>) {
     assert(input.exists())
     val params = IndexParams().apply {
         create()
-        withPath(File(argp.get("index", "/mnt/scratch/jfoley/trec-news-2018/wapo.irene")))
+        withPath(File(argp.get("index", defaultWapoIndexPath)))
     }
 
     val index = IreneIndexer(params).use { writer ->

@@ -77,6 +77,9 @@ class IndexParams {
             } else {
                 PerFieldAnalyzerWrapper(defaultAnalyzer, perFieldAnalyzers)
             }
+
+    fun openReader() = IreneIndex(this)
+    fun openWriter() = IreneIndexer(this)
 }
 
 class IreneIndexer(val params: IndexParams) : Closeable {

@@ -47,7 +47,9 @@ fun SequentialDependenceModel(terms: List<String>,
                               fullProx: Double? = null, fullProxWidth:Int=12,
                               makeScorer: (QExpr)-> QExpr = { DirQLExpr(it) },
         // SumExpr to match Galago, probably want MeanExpr if you're nesting...
-                              outerExpr: (List<QExpr>) -> QExpr = { SumExpr(it) }): QExpr {
+                              outerExpr: (List<QExpr>) -> QExpr = { SumExpr(it) },
+                              uwExpr: (List<QExpr>, Int)->QExpr = {children, width -> UnorderedWindowExpr(children, width)}
+): QExpr {
     if (terms.isEmpty()) throw IllegalStateException("Empty SDM")
     if (terms.size == 1) {
         return makeScorer(TextExpr(terms[0], field, statsField))
@@ -79,7 +81,7 @@ fun SequentialDependenceModel(terms: List<String>,
     }
     bestTerms.forEachSeqPair { lhs, rhs ->
         val ts = listOf(lhs, rhs).map { TextExpr(it, field, statsField) }
-        ubigrams.add(makeScorer(UnorderedWindowExpr(ts, uwWidth)))
+        ubigrams.add(makeScorer(uwExpr(ts, uwWidth)))
     }
 
     val exprs = arrayListOf(
@@ -89,7 +91,7 @@ fun SequentialDependenceModel(terms: List<String>,
 
     if (fullProx != null) {
         val fullProxTerms = if (bestTerms.size >= 2) bestTerms else terms
-        exprs.add(makeScorer(UnorderedWindowExpr(fullProxTerms.map { TextExpr(it, field, statsField) }, fullProxWidth)).weighted(fullProx))
+        exprs.add(makeScorer(uwExpr(fullProxTerms.map { TextExpr(it, field, statsField) }, fullProxWidth)).weighted(fullProx))
     }
 
     return outerExpr(exprs)

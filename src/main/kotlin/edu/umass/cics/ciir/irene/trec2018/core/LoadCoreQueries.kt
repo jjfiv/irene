@@ -3,6 +3,7 @@ package edu.umass.cics.ciir.irene.trec2018.core
 import org.jsoup.Jsoup
 import org.lemurproject.galago.utility.Parameters
 import java.io.File
+import java.util.*
 
 data class TrecCoreQuery(val qid: String, val title: String, val desc: String, val narr: String) {
 }
@@ -17,7 +18,7 @@ fun LoadTrecCoreQueries(path: String): Map<String, TrecCoreQuery> {
         val desc = query.selectFirst("desc").text().substringAfter("Description:").trim()
         val narr = query.selectFirst("narr").text().substringAfter("Narrative").trim()
         TrecCoreQuery(qid, title, desc, narr)
-    }.associateBy { it.qid }
+    }.associateByTo(TreeMap()) { it.qid }
 }
 
 fun main(args: Array<String>) {
