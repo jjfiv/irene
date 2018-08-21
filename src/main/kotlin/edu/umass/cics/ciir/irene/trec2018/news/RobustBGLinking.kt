@@ -79,7 +79,7 @@ fun main(args: Array<String>) {
         }
 
         for (mu in listOf(3000,3500,4000)) {
-            for (lambda in listOf(0,1,2,3)) {
+            for (lambda in listOf(1)) {
                 for (nt in listOf(10,20,50,100)) {
                     for (wds in listOf(8,16)) {
                         val msrs = NamedMeasures()

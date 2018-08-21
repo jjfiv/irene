@@ -1,4 +1,4 @@
-package edu.umass.cics.ciir.irene.trec2018.news
+package edu.umass.cics.ciir.irene.trec2018
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.databind.ObjectMapper
