@@ -1,4 +1,4 @@
-package edu.umass.cics.ciir.irene.trec2018.news
+package edu.umass.cics.ciir.irene.trec2018
 
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndexer
@@ -7,7 +7,6 @@ import edu.unh.cs.treccar_v2.read_data.DeserializeData
 import org.lemurproject.galago.utility.Parameters
 import org.lemurproject.galago.utility.StreamCreator
 import java.io.File
-import kotlin.streams.asStream
 
 
 fun main(args: Array<String>) {
