@@ -64,7 +64,7 @@ fun main(args: Array<String>) {
 
 ## Query Language Nodes
 
-Right now, there is no string-based syntax for these Query Language Nodes. They are all either subclasses of ``QExpr`` or they are functions that select sub-classes of ``QExpr`` (e.g., ``MeanExpr`` is a function that sets up weights in a ``CombineExpr``).
+Right now, there is no string-based syntax for these Query Language Nodes. They are all either subclasses of ``QExpr`` or they are functions that select sub-classes of ``QExpr`` (e.g., ``MeanExpr`` is a function that sets up weights in a ``CombineExpr``). Because there's no ``new`` keyword in Kotlin, they look the same in a query.
 
 To understand this query language, you need to think of search as logically being done in two passes. In the first pass, we collect all the documents that "match" a query, and in the second pass, we score those documents. Some expressions separate these passes explicitly, like ``MustExpr`` and ``RequireExpr``. Irene is able to optimize these two parts of scoring independently, often leading to much simpler expressions and requirements for document matching even with expensive scoring trees.
 
@@ -79,12 +79,12 @@ To understand this query language, you need to think of search as logically bein
 - ``MustExpr(var must: QExpr, var value: QExpr)``. A ``MustExpr`` gives a score from the ``value`` sub-expression when both ``must`` and ``value`` match.
  
 ### Document Metadata and Field Operations
-- ``DenseLongField(val name: String, var missing: Long=0L)``
-- ``LongLTE(override var child: QExpr, val threshold: Long)``
-- ``LengthsExpr(var statsField: String?)``
-- ``BoolExpr(field: String, desired: Boolean=true)``
-- ``TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS)``
-- ``LuceneExpr(val rawQuery: String, var query: LuceneQuery? = null )``
+- ``DenseLongField(val name: String, var missing: Long=0L)``. This gives us access to a named long field in each document.
+- ``LongLTE(override var child: QExpr, val threshold: Long)``. This gives us the ability to check whether a length or a dense long field is less than or equal to a threshold value.
+- ``LengthsExpr(var statsField: String?)``. Given a field to draw statistics from, all documents have a length.
+- ``BoolExpr(field: String, desired: Boolean=true)``. We store boolean values in Lucene's ``StringField`` with "T" and "F" to store true and false (we can also detect missing this way). So you don't have to remember those constants with a ``TextEXpr``, we have this node.
+- ``TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS)``. This is the core of any retrieval model: a term (``text``) located in a given ``field``, with statistics drawn from ``statsField``. The final field ``needed`` is whether presence, counts, or positions are needed to compute the values derived from this term in your expression -- this is calculated automatically by Irene.
+- ``LuceneExpr(val rawQuery: String, var query: LuceneQuery? = null )``. Because our primary search system is Lucene, we have the ability to submit Lucene queries in Lucene syntax, and use them at any point in our language. Fill in either ``rawQuery`` (and it will be parsed) or ``LuceneQuery`` which is an alias for ``org.apache.lucene.search.Query``.
 
 ### Combination Nodes
 - ``SynonymExpr(override var children: List<QExpr>)``
