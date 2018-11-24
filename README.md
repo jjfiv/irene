@@ -6,53 +6,61 @@ Irene is a new query language written on top of Lucene's indexing structures. Th
 
 This is our actual definition of Query Likelihood:
 
-    fun QueryLikelihood(terms: List<String>, field: String?=null, statsField: String?=null, mu: Double? = null): QExpr {
-        return MeanExpr(terms.map { DirQLExpr(TextExpr(it, field, statsField), mu) })
-    }
+```kotlin
+fun QueryLikelihood(terms: List<String>, field: String?=null, statsField: String?=null, mu: Double? = null): QExpr {
+    return MeanExpr(terms.map { DirQLExpr(TextExpr(it, field, statsField), mu) })
+}
+```
 
 Looking for an exact Wikipedia Title match?
 
-    // Do we find the exact phrasing, and do we match the length of the field exactly.
-    fun generateExactMatchQuery(qterms: List<String>, field: String?=null, statsField: String?=null): QExpr {
-        return AndExpr(listOf(phraseQuery(qterms, field, statsField), CountEqualsExpr(LengthsExpr(field), qterms.size)))
-    }
+```kotlin
+// Do we find the exact phrasing, and do we match the length of the field exactly.
+fun generateExactMatchQuery(qterms: List<String>, field: String?=null, statsField: String?=null): QExpr {
+    return AndExpr(listOf(phraseQuery(qterms, field, statsField), CountEqualsExpr(LengthsExpr(field), qterms.size)))
+}
+```
 
 Want to only allow documents published after the query document?
 
-    val time = doc.published_date ?: 0L
-    assert(time >= 0L)
+```kotlin
+val time = doc.published_date ?: 0L
+assert(time >= 0L)
 
-    val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
-    val countBefore = index.count(publishedBeforeExpr)
-    val finalExpr = MustExpr(publishedBeforeExpr, query).deepCopy()
+val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
+val countBefore = index.count(publishedBeforeExpr)
+val finalExpr = MustExpr(publishedBeforeExpr, query).deepCopy()
+```
 
 ## TREC-Core 2018 QL Likelihood Run:
 
 This example gives a sense of how to use the index opening and reading API in order to submit queries and write results to a trec file.
 
-    fun main(args: Array<String>) {
-        val argp = Parameters.parseArgs(args)
-        val queryFile = argp.get("queryFile", "${System.getenv("HOME")}/code/queries/trec_core/2018-test-topics.txt")
-        val queries = LoadTrecCoreQueries(queryFile)
-        val qlOutput = File("umass_ql.trecrun.gz").smartPrinter()
+```kotlin
+fun main(args: Array<String>) {
+  val argp = Parameters.parseArgs(args)
+  val queryFile = argp.get("queryFile", "${System.getenv("HOME")}/code/queries/trec_core/2018-test-topics.txt")
+  val queries = LoadTrecCoreQueries(queryFile)
+  val qlOutput = File("umass_ql.trecrun.gz").smartPrinter()
 
-        IndexParams().apply {
-            withPath(File(argp.get("index", defaultWapoIndexPath)))
-        }.openReader().use { index ->
-            index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
+  IndexParams().apply {
+    withPath(File(argp.get("index", defaultWapoIndexPath)))
+  }.openReader().use { index ->
+    index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
 
-            for (q in queries.values) {
-                val titleTerms = index.tokenize(q.title)
-                println("${q.qid} ${titleTerms.joinToString(separator=" ")}")
-                val ql = QueryLikelihood(titleTerms)
-                val (time, scores) = timed { index.search(ql, 10000) }
-                System.out.printf("\tQL Time: %1.3fs total=%d\n", time, scores.totalHits)
-                scores.toQueryResults(index, qid = q.qid).outputTrecrun(qlOutput, "umass_ql")
-            }
-        }
-
-        qlOutput.close()
+    for (q in queries.values) {
+      val titleTerms = index.tokenize(q.title)
+      println("${q.qid} ${titleTerms.joinToString(separator=" ")}")
+      val ql = QueryLikelihood(titleTerms)
+      val (time, scores) = timed { index.search(ql, 10000) }
+      System.out.printf("\tQL Time: %1.3fs total=%d\n", time, scores.totalHits)
+            scores.toQueryResults(index, qid = q.qid).outputTrecrun(qlOutput, "umass_ql")
     }
+  }
+
+  qlOutput.close()
+}
+```
 
 ## Query Language Nodes
 
