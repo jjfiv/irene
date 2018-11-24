@@ -56,51 +56,53 @@ This example gives a sense of how to use the index opening and reading API in or
 
 ## Query Language Nodes
 
-### Constants and Match Control
-- ConstScoreExpr(var x: Double)
-- ConstCountExpr(var x: Int, val lengths: LengthsExpr)
-- ConstBoolExpr(var x: Boolean)
-- AlwaysMatchExpr(child: QExpr) = RequireExpr(AlwaysMatchLeaf, child)
-- AlwaysMatchLeaf
-- NeverMatchExpr(child: QExpr) = RequireExpr(NeverMatchLeaf, child)
-- NeverMatchLeaf
-- WhitelistMatchExpr(var docNames: Set<String>? = null, var docIdentifiers: List<Int>? = null)
-- RequireExpr(var cond: QExpr, var value: QExpr)
-- MustExpr(var must: QExpr, var value: QExpr)
+Right now, there is no string-based syntax for these Query Language Nodes. They are all either subclasses of ``QExpr`` or they are functions that select sub-classes of ``QExpr`` (e.g., ``MeanExpr`` is a function that sets up weights in a ``CombineExpr``).
 
+To understand this query language, you need to think of search as logically being done in two passes. In the first pass, we collect all the documents that "match" a query, and in the second pass, we score those documents. Some expressions separate these passes explicitly, like ``MustExpr`` and ``RequireExpr``. Irene is able to optimize these two parts of scoring independently, often leading to much simpler expressions and requirements for document matching even with expensive scoring trees.
+
+### Constants and Match Control
+- ``ConstScoreExpr(var x: Double)``. This is a constant value - it never matches any documents.
+- ``ConstCountExpr(var x: Int, val lengths: LengthsExpr)``. This is a constant value - it never matches any documents.
+- ``ConstBoolExpr(var x: Boolean)``. This is a constant value - it never matches any documents.
+- ``AlwaysMatchExpr(child: QExpr) = RequireExpr(AlwaysMatchLeaf, child)``. This wrapper ignores whether or not ``child`` matches any documents and just always considers itself a match. This can be helpful for to extract features for a set of documents no matter what.
+- ``NeverMatchExpr(child: QExpr) = RequireExpr(NeverMatchLeaf, child)``. This wrapper ignores whether or not ``child`` matches any documents and always returns false -- this can be used to boost document scores, for instance, but never adds to the pool by itself.
+- ``WhitelistMatchExpr(var docNames: Set<String>? = null, var docIdentifiers: List<Int>? = null)``. This is a so-called "working-set" operation. Given a set of internal or external document identifiers, it only scores those in this subtree.
+- ``RequireExpr(var cond: QExpr, var value: QExpr)``. A ``RequireExpr`` gives a score from ``value`` sub-expression when ``cond`` matches, regardless of whether the ``value`` expression matches.
+- ``MustExpr(var must: QExpr, var value: QExpr)``. A ``MustExpr`` gives a score from the ``value`` sub-expression when both ``must`` and ``value`` match.
+ 
 ### Document Metadata and Field Operations
-- DenseLongField(val name: String, var missing: Long=0L)
-- LongLTE(override var child: QExpr, val threshold: Long)
-- LengthsExpr(var statsField: String?)
-- BoolExpr(field: String, desired: Boolean=true)
-- TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS)
-- LuceneExpr(val rawQuery: String, var query: LuceneQuery? = null )
+- ``DenseLongField(val name: String, var missing: Long=0L)``
+- ``LongLTE(override var child: QExpr, val threshold: Long)``
+- ``LengthsExpr(var statsField: String?)``
+- ``BoolExpr(field: String, desired: Boolean=true)``
+- ``TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS)``
+- ``LuceneExpr(val rawQuery: String, var query: LuceneQuery? = null )``
 
 ### Combination Nodes
-- SynonymExpr(override var children: List<QExpr>)
-- AndExpr(override var children: List<QExpr>)
-- OrExpr(override var children: List<QExpr>)
-- SumExpr(children: List<QExpr>) = CombineExpr(children, children.map { 1.0 })
-- MeanExpr(children: List<QExpr>) = CombineExpr(children, children.map { 1.0 / children.size.toDouble() })
-- CombineExpr(override var children: List<QExpr>, var weights: List<Double>)
-- MultExpr(override var children: List<QExpr>)
-- MaxExpr(override var children: List<QExpr>)
-- WeightExpr(override var child: QExpr, var weight: Double = 1.0)
+- ``SynonymExpr(override var children: List<QExpr>)``
+- ``AndExpr(override var children: List<QExpr>)``
+- ``OrExpr(override var children: List<QExpr>)``
+- ``SumExpr(children: List<QExpr>) = CombineExpr(children, children.map { 1.0 })``
+- ``MeanExpr(children: List<QExpr>) = CombineExpr(children, children.map { 1.0 / children.size.toDouble() })``
+- ``CombineExpr(override var children: List<QExpr>, var weights: List<Double>)``
+- ``MultExpr(override var children: List<QExpr>)``
+- ``MaxExpr(override var children: List<QExpr>)``
+- ``WeightExpr(override var child: QExpr, var weight: Double = 1.0)``
 
 ### Term Dependency Nodes
-- SmallerCountExpr(override var children: List<QExpr>)
-- OrderedWindowExpr(override var children: List<QExpr>, var step: Int=1)
-- UnorderedWindowExpr(override var children: List<QExpr>, var width: Int=8)
-- ProxExpr(override var children: List<QExpr>, var width: Int=8)
-data class CountEqualsExpr(override var child: QExpr, var target: Int)
+- ``SmallerCountExpr(override var children: List<QExpr>)``
+- ``OrderedWindowExpr(override var children: List<QExpr>, var step: Int=1)``
+- ``UnorderedWindowExpr(override var children: List<QExpr>, var width: Int=8)``
+- ``ProxExpr(override var children: List<QExpr>, var width: Int=8)``
+- ``CountEqualsExpr(override var child: QExpr, var target: Int)``
 
 ### Retrieval Model Scorers
-data class DirQLExpr(override var child: QExpr, var mu: Double? = null, var stats: CountStats? = null)
-data class AbsoluteDiscountingQLExpr(override var child: QExpr, var delta: Double? = null, var stats: CountStats? = null)
-data class BM25Expr(override var child: QExpr, var b: Double? = null, var k: Double? = null, var stats: CountStats? = null, var extractedIDF: Boolean = false)
+- ``DirQLExpr(override var child: QExpr, var mu: Double? = null, var stats: CountStats? = null)``
+- ``AbsoluteDiscountingQLExpr(override var child: QExpr, var delta: Double? = null, var stats: CountStats? = null)``
+- ``BM25Expr(override var child: QExpr, var b: Double? = null, var k: Double? = null, var stats: CountStats? = null, var extractedIDF: Boolean = false)``
 
 ### Change of Type Operations
-- CountToScoreExpr(override var child: QExpr)
-- BoolToScoreExpr(override var child: QExpr, var trueScore: Double=1.0, var falseScore: Double=0.0)
-- CountToBoolExpr(override var child: QExpr, var gt: Int = 0)
+- ``CountToScoreExpr(override var child: QExpr)``
+- ``BoolToScoreExpr(override var child: QExpr, var trueScore: Double=1.0, var falseScore: Double=0.0)``
+- ``CountToBoolExpr(override var child: QExpr, var gt: Int = 0)``
 
