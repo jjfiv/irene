@@ -22,17 +22,17 @@ fun phraseQuery(terms: List<String>, field: String? = null, statsField: String? 
     else -> OrderedWindowExpr(terms.map { TextExpr(it, field, statsField) })
 }
 
-// Do we find the exact phrasing, and do we
+// Do we find the exact phrasing, and do we match the length of the field exactly.
 fun generateExactMatchQuery(qterms: List<String>, field: String?=null, statsField: String?=null): QExpr {
     return AndExpr(listOf(phraseQuery(qterms, field, statsField), CountEqualsExpr(LengthsExpr(field), qterms.size)))
 }
 
 // Easy "model"-based constructor.
 fun QueryLikelihood(terms: List<String>, field: String?=null, statsField: String?=null, mu: Double? = null): QExpr {
-    return UnigramRetrievalModel(terms, { DirQLExpr(it, mu) }, field, statsField)
+    return MeanExpr(terms.map { DirQLExpr(TextExpr(it, field, statsField), mu) })
 }
 fun BM25Model(terms: List<String>, field: String?=null, statsField: String?=null, b: Double? = null, k: Double? = null): QExpr {
-    return UnigramRetrievalModel(terms, { BM25Expr(it, b, k) }, field, statsField)
+    return MeanExpr(terms.map { BM25Expr(TextExpr(it, field, statsField), b, k) })
 }
 fun UnigramRetrievalModel(terms: List<String>, scorer: (TextExpr)-> QExpr, field: String?=null, statsField: String?=null): QExpr {
     return MeanExpr(terms.map { scorer(TextExpr(it, field, statsField)) })
