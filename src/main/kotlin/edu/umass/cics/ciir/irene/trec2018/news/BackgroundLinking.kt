@@ -33,7 +33,27 @@ fun loadBGLinkQueries(path: String): List<TrecNewsBGLinkQuery> {
         TrecNewsBGLinkQuery(qid, docid, url)
     }
 }
+data class TrecNewsEntity(val id: String, val mention: String, val link: String)
+data class TrecNewsEntityLinkQuery(val qid: String, val docid: String, val url: String, val ent: List<TrecNewsEntity>)
+fun loadEntityLinkQueries(path: String): List<TrecNewsEntityLinkQuery> {
+    val trecXMLDoc = File(path)
+    if (!trecXMLDoc.exists()) error("TREC News BG Linking Query file not found at: $path")
+    val doc = Jsoup.parse(trecXMLDoc, "UTF-8")
+    return doc.select("top").map { query ->
+        val qid = query.selectFirst("num").text().substringAfter("Number:").trim()
+        val docid = query.selectFirst("docid").text().trim()
+        val url = query.selectFirst("url").text().trim()
 
+        val entities = query.select("entity").map { etag ->
+            val id = etag.selectFirst("id").text().trim()
+            val mention = etag.selectFirst("mention").text().trim()
+            val link = etag.selectFirst("link").text().trim()
+            TrecNewsEntity(id, mention, link)
+        }
+
+        TrecNewsEntityLinkQuery(qid, docid, url, entities)
+    }
+}
 data class WapoDocument(
         val id: String,
         val published_date: Long?,
