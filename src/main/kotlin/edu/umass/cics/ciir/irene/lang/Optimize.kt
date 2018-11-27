@@ -152,6 +152,7 @@ fun combineWeights(input: QExpr, ctx: CombineWeightsFixedPoint): QExpr = qmap(in
         is CountToBoolExpr,
         is CountToScoreExpr,
         is DirQLExpr,
+        is LinearQLExpr,
         is MaxExpr,
         is MultExpr,
         is MultiExpr,
@@ -202,7 +203,7 @@ fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
             }
             DataNeeded.POSITIONS
         }
-        is AbsoluteDiscountingQLExpr, is BM25Expr, is DirQLExpr ->  DataNeeded.COUNTS
+        is LinearQLExpr, is AbsoluteDiscountingQLExpr, is BM25Expr, is DirQLExpr ->  DataNeeded.COUNTS
         is CountToScoreExpr ->  DataNeeded.COUNTS
         is BoolToScoreExpr -> DataNeeded.DOCS
         is CountToBoolExpr -> DataNeeded.COUNTS
@@ -228,12 +229,6 @@ fun applyEnvironment(env: RREnv, root: QExpr) {
     root.visit { q ->
         when(q) {
             is LuceneExpr -> q.parse(env as? IreneQueryLanguage ?: error("LuceneExpr in environment without LuceneParser."))
-            is DirQLExpr -> if (q.mu == null) {
-                q.mu = env.defaultDirichletMu
-            }
-            is AbsoluteDiscountingQLExpr -> if (q.delta == null) {
-                q.delta = env.absoluteDiscountingDelta
-            }
             else -> q.applyEnvironment(env)
         }
     }
@@ -269,6 +264,7 @@ fun reduceSingleChildren(q: QExpr): QExpr = when(q) {
     is LuceneExpr,
     is WeightExpr,
     is CountEqualsExpr,
+    is LinearQLExpr,
     is DirQLExpr,
     is AbsoluteDiscountingQLExpr,
     is BM25Expr,

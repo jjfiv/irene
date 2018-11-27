@@ -69,6 +69,11 @@ private fun toGalagoRecursive(q : QExpr): GExpr {
             setf("norm", false)
             setf("0", q.weight)
         }
+        is LinearQLExpr -> GExpr("linear").apply {
+            addChild(createLengths(q.child))
+            addChild(toGalagoRecursive(q.child))
+            setf("lambda", q.lambda)
+        }
         is DirQLExpr -> GExpr("dirichlet").apply {
             addChild(createLengths(q.child))
             addChild(toGalagoRecursive(q.child))

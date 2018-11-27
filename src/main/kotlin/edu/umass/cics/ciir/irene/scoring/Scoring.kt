@@ -473,6 +473,28 @@ internal class BM25InnerScoringEval(override val child: QueryEvalNode, override 
 }
 
 /**
+ * Created from [LinearQLExpr] via [exprToEval]
+ */
+internal class LinearSmoothingEval(override val child: QueryEvalNode, override val lengths: QueryEvalNode, val lambda: Double, val stats: CountStats) : ScorerEval() {
+    val background =  (1 - lambda) * stats.nonzeroCountProbability()
+    override fun score(env: ScoringEnv): Double {
+        val c = child.count(env).toDouble()
+        val length = lengths.count(env).toDouble()
+        return Math.log((lambda * (c/length)) + (background));
+    }
+    override fun count(env: ScoringEnv): Int = TODO("not yet")
+    override fun explain(env: ScoringEnv): Explanation {
+        val c = child.count(env)
+        val length = lengths.count(env)
+        if (c > 0) {
+            return Explanation.match(score(env).toFloat(), "$c/$length with lambda=$lambda, bg=$background dirichlet smoothing. $stats", listOf(child.explain(env)))
+        } else {
+            return Explanation.noMatch("score=${score(env)} or $c/$length with lambda=$lambda, bg=$background dirichlet smoothing $stats ${stats.nonzeroCountProbability()}.", listOf(child.explain(env)))
+        }
+    }
+}
+
+/**
  * Created from [DirQLExpr] via [exprToEval]
  */
 internal class DirichletSmoothingEval(override val child: QueryEvalNode, override val lengths: QueryEvalNode, val mu: Double, val stats: CountStats) : ScorerEval() {

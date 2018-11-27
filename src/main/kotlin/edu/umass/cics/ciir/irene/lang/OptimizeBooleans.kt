@@ -190,6 +190,7 @@ fun simplifyBools(input: QExpr, ctx: FixedPointBooleanSimplification): QExpr {
             is CountToBoolExpr,
             is CountToScoreExpr,
             is CountEqualsExpr,
+            is LinearQLExpr,
             is DirQLExpr,
             is MaxExpr,
             is MultExpr,

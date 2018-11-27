@@ -40,6 +40,7 @@ fun insertStats(env: RREnv, input: QExpr) = qmap(input) { q ->
         is WhitelistMatchExpr -> q
 
         is LengthsExpr -> LengthsExpr(q.statsField!!)
+        is LinearQLExpr -> LinearQLExpr(q.trySingleChild, q.lambda, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is DirQLExpr -> DirQLExpr(q.trySingleChild, q.mu, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is AbsoluteDiscountingQLExpr -> AbsoluteDiscountingQLExpr(q.trySingleChild, q.delta, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is BM25Expr -> BM25Expr(q.trySingleChild, b=q.b, k=q.k, stats=q.stats ?: computeCountStats(q.trySingleChild, env).get())

@@ -30,6 +30,7 @@ private fun createMoverRec(q: QExpr, ctx: IQContext) : QueryMover = when(q) {
 
 // Transformers are straight-forward:
     is LongLTE,
+    is LinearQLExpr,
     is CountToScoreExpr, is BoolToScoreExpr, is CountToBoolExpr, is AbsoluteDiscountingQLExpr, is BM25Expr, is WeightExpr, is DirQLExpr -> createMoverRec(q.trySingleChild, ctx)
 
 // NOTE: Galago semantics, only look at cond. This is not an AND like you might think.

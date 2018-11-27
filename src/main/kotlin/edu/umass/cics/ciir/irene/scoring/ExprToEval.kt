@@ -39,12 +39,14 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
     is MultExpr -> TODO()
     is MaxExpr -> MaxEval(q.children.map { exprToEval(it, ctx) })
     is WeightExpr -> WeightedEval(exprToEval(q.child, ctx), q.weight)
-    is DirQLExpr -> {
-        DirichletSmoothingEval(
-                exprToEval(q.child, ctx),
-                ctx.createLengths(q.child.getLengthsField()),
-                q.mu!!, q.stats!!)
-    }
+    is LinearQLExpr -> LinearSmoothingEval(
+            exprToEval(q.child, ctx),
+            ctx.createLengths(q.child.getLengthsField()),
+            q.lambda!!, q.stats!!)
+    is DirQLExpr -> DirichletSmoothingEval(
+            exprToEval(q.child, ctx),
+            ctx.createLengths(q.child.getLengthsField()),
+            q.mu!!, q.stats!!)
     is BM25Expr -> if (q.extractedIDF) {
         BM25InnerScoringEval(
                 exprToEval(q.child, ctx),

@@ -12,6 +12,7 @@ import org.lemurproject.galago.utility.MathUtils
 abstract class RREnv {
     open var defaultField = "document"
     open var defaultDirichletMu = 1500.0
+    open var defaultLinearSmoothingLambda = 0.8;
     open var defaultBM25b = 0.75
     open var defaultBM25k = 1.2
     open var absoluteDiscountingDelta = 0.7

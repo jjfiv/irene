@@ -9,7 +9,9 @@ import kotlin.collections.HashSet
 
 typealias LuceneQuery = org.apache.lucene.search.Query
 
-
+/**
+ * Apply a mapping function ([mapper]) to all nodes in this query ([q]), building a new query with the output nodes ([QExpr]).
+ */
 fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
     return when (q) {
     // LeafExpr:
@@ -39,6 +41,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         is WeightExpr -> mapper(WeightExpr(qmap(q.child, mapper), q.weight))
         is CountEqualsExpr -> mapper(CountEqualsExpr(qmap(q.child, mapper), q.target))
         is DirQLExpr -> mapper(DirQLExpr(qmap(q.child, mapper), q.mu, q.stats))
+        is LinearQLExpr -> mapper(LinearQLExpr(qmap(q.child, mapper), q.lambda, q.stats))
         is AbsoluteDiscountingQLExpr -> mapper(AbsoluteDiscountingQLExpr(qmap(q.child, mapper), q.delta, q.stats))
         is BM25Expr -> mapper(BM25Expr(qmap(q.child, mapper), q.b, q.k, q.stats, q.extractedIDF))
         is CountToScoreExpr -> mapper(CountToScoreExpr(qmap(q.child, mapper)))
@@ -304,8 +307,19 @@ data class CountEqualsExpr(override var child: QExpr, var target: Int): SingleCh
 }
 
 data class DirQLExpr(override var child: QExpr, var mu: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
+    override fun applyEnvironment(env: RREnv) {
+        this.mu = env.defaultDirichletMu
+    }
+}
+data class LinearQLExpr(override var child: QExpr, var lambda: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
+    override fun applyEnvironment(env: RREnv) {
+        this.lambda = env.defaultLinearSmoothingLambda
+    }
 }
 data class AbsoluteDiscountingQLExpr(override var child: QExpr, var delta: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
+    override fun applyEnvironment(env: RREnv) {
+        this.delta = env.absoluteDiscountingDelta
+    }
 }
 data class BM25Expr(override var child: QExpr, var b: Double? = null, var k: Double? = null, var stats: CountStats? = null, var extractedIDF: Boolean = false): SingleChildExpr() {
 
