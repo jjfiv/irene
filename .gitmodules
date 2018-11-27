@@ -1,3 +1,3 @@
 [submodule "galago"]
 	path = galago
-	url = git@github.com:jjfiv/galago-git.git
+	url = https://github.com/jjfiv/galago-git.git
