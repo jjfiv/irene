@@ -1,6 +1,15 @@
-## Irene [![Build Status](https://travis-ci.org/jjfiv/irene.svg?branch=master)](https://travis-ci.org/jjfiv/irene)
+# Irene [![Build Status](https://travis-ci.org/jjfiv/irene.svg?branch=master)](https://travis-ci.org/jjfiv/irene)
 
 Irene is a new query language written on top of Lucene's indexing structures. This query language can be interpreted into both Galago 3.13 and Lucene 7 indexing structures. It may also be run in a learning-to-rank context.
+
+## Irene is a Query Language and not a new Search Engine
+
+The composition given to us by #inquery is the "killer app" of the Lemur project search engines (Indri and Galago). 
+
+How do we make that smaller, more portable, more useful for researchers? Separate it from the backend.
+
+## This project is in a *very early* Alpha-state:
+I had no real intention of opening it up yet, but it's evolved to the point where I prefer to use it for all my experiments, and folks have been asking me "What's the future of Galago?", and they want to know what I'm using now that I'm not using Galago anymore.
 
 ## Getting Started
 
