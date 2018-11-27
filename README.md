@@ -12,6 +12,8 @@ fun QueryLikelihood(terms: List<String>, field: String?=null, statsField: String
 }
 ```
 
+See more retrieval models, including SDM in [RetrievalModels.kt](https://github.com/jjfiv/irene/blob/master/src/main/kotlin/edu/umass/cics/ciir/irene/lang/RetrievalModels.kt).
+
 Looking for an exact Wikipedia Title match?
 
 ```kotlin
