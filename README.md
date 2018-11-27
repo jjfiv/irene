@@ -1,4 +1,4 @@
-## Irene
+## Irene [![Build Status](https://travis-ci.org/jjfiv/irene.svg?branch=master)](https://travis-ci.org/jjfiv/irene)
 
 Irene is a new query language written on top of Lucene's indexing structures. This query language can be interpreted into both Galago 3.13 and Lucene 7 indexing structures. It may also be run in a learning-to-rank context.
 
