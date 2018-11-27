@@ -2,6 +2,10 @@
 
 set -eu
 
+# Download Galago 3.13
+git submodule update --init --recursive
+
+# Build it and install.
 cd galago
 ./scripts/installlib.sh
 mvn install -DskipTests

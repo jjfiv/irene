@@ -2,6 +2,10 @@
 
 Irene is a new query language written on top of Lucene's indexing structures. This query language can be interpreted into both Galago 3.13 and Lucene 7 indexing structures. It may also be run in a learning-to-rank context.
 
+## Getting Started
+
+Clone this repository and then run ``./install_galago``, which will grab Galago as a submodule, and install it (skipping the slow tests) and then you can ``mvn install`` this project (or import to IntelliJ or your favorite IDE).
+
 ## Complex Retrieval Models are just Functions
 
 This is our actual definition of Query Likelihood:
