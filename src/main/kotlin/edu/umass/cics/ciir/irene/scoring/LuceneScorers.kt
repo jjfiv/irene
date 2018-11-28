@@ -4,7 +4,6 @@ import edu.umass.cics.ciir.irene.DataNeeded
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
 import edu.umass.cics.ciir.irene.lang.*
-import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.lucene_try
 import edu.umass.cics.ciir.irene.utils.ComputedStats
 import edu.umass.cics.ciir.irene.utils.IntList

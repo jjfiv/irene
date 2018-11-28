@@ -3,6 +3,7 @@ package edu.umass.cics.ciir.irene.ltr
 import edu.umass.cics.ciir.irene.utils.computeEntropy
 import edu.umass.cics.ciir.irene.utils.mean
 import edu.umass.cics.ciir.irene.lang.QExpr
+import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.LTRDoc
 import edu.umass.cics.ciir.irene.scoring.LTRDocScoringEnv
 import edu.umass.cics.ciir.irene.scoring.QueryEvalNode
@@ -12,6 +13,7 @@ fun QExpr.toRRExpr(env: RREnv): RRExpr {
     return RREvalNodeExpr(env, this.deepCopy())
 }
 
+sealed class RRLeafExpr(env: RREnv) : RRExpr(env)
 sealed class RRExpr(val env: RREnv) {
     abstract fun eval(doc: LTRDoc): Double
     open fun explain(doc: LTRDoc): Explanation = Explanation.match(eval(doc).toFloat(), "RRExpr:${this.javaClass.simpleName}")
@@ -51,7 +53,6 @@ class RRMult(env: RREnv, exprs: List<RRExpr>): RRCCExpr(env, exprs) {
     }
 }
 
-sealed class RRLeafExpr(env: RREnv) : RRExpr(env)
 class RRFeature(env: RREnv, val name: String): RRLeafExpr(env) {
     override fun eval(doc: LTRDoc): Double {
         return doc.features[name]!!

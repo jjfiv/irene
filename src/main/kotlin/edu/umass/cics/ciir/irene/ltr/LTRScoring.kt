@@ -8,7 +8,6 @@ import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.incr
 import edu.umass.cics.ciir.irene.galago.pmake
 import edu.umass.cics.ciir.irene.lang.*
-import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.ltr.RRExpr
 import edu.umass.cics.ciir.irene.ltr.WeightedTerm
 import edu.umass.cics.ciir.irene.ltr.normalized

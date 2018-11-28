@@ -3,11 +3,7 @@ package edu.umass.cics.ciir.irene
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import edu.umass.cics.ciir.irene.indexing.LDocBuilder
-import edu.umass.cics.ciir.irene.lang.IreneQueryLanguage
-import edu.umass.cics.ciir.irene.lang.MultiExpr
-import edu.umass.cics.ciir.irene.lang.QExpr
-import edu.umass.cics.ciir.irene.lang.TextExpr
-import edu.umass.cics.ciir.irene.ltr.RREnv
+import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.scoring.IreneQueryModel
 import edu.umass.cics.ciir.irene.scoring.LTRDoc
 import org.apache.lucene.analysis.Analyzer

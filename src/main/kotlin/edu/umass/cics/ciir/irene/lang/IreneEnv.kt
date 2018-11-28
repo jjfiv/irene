@@ -1,6 +1,5 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.ltr.RREnv
 import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.EmptyIndex
 import edu.umass.cics.ciir.irene.IIndex

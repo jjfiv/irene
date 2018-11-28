@@ -2,7 +2,6 @@ package edu.umass.cics.ciir.irene.lang
 
 import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.scoring.*
-import edu.umass.cics.ciir.irene.ltr.RREnv
 import org.apache.lucene.index.Term
 import java.util.*
 import kotlin.collections.HashSet

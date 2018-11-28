@@ -2,7 +2,6 @@ package edu.umass.cics.ciir.irene.lang
 
 import edu.umass.cics.ciir.irene.DataNeeded
 import edu.umass.cics.ciir.irene.galago.incr
-import edu.umass.cics.ciir.irene.ltr.RREnv
 
 /**
  *

@@ -3,7 +3,7 @@ package edu.umass.cics.ciir.irene.galago
 import edu.umass.cics.ciir.irene.utils.IntList
 import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.lang.QExpr
-import edu.umass.cics.ciir.irene.ltr.RREnv
+import edu.umass.cics.ciir.irene.lang.RREnv
 import org.lemurproject.galago.core.index.stats.FieldStatistics
 import org.lemurproject.galago.core.retrieval.LocalRetrieval
 import org.lemurproject.galago.utility.Parameters
