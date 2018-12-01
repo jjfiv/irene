@@ -3,16 +3,11 @@ package edu.umass.cics.ciir.irene.galago
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.utils.normalize
 import org.lemurproject.galago.core.index.mem.MemoryIndex
-import org.lemurproject.galago.core.retrieval.FeatureFactory
 import org.lemurproject.galago.core.retrieval.LocalRetrieval
 import org.lemurproject.galago.core.retrieval.query.StructuredQuery
 import org.lemurproject.galago.core.retrieval.traversal.*
 import org.lemurproject.galago.core.retrieval.traversal.optimize.ExtentsToCountLeafTraversal
-import org.lemurproject.galago.core.retrieval.traversal.optimize.FlattenCombineTraversal
-import org.lemurproject.galago.core.retrieval.traversal.optimize.FlattenWindowTraversal
-import org.lemurproject.galago.core.retrieval.traversal.optimize.MergeCombineChildrenTraversal
 import org.lemurproject.galago.utility.Parameters
-import javax.xml.soap.Text
 
 internal val traversalParamList = listOf(
         // We can't support the RM traversal now.
@@ -64,6 +59,22 @@ fun GExpr.children(): List<GExpr> {
     return out
 }
 
+fun parseWeights(expr: GExpr): List<Double> {
+    val np = expr.nodeParameters
+    val children = expr.children();
+
+    val weights = ArrayList<Double>()
+    for (i in 0..children.size) {
+        weights.add(np.get("$i", 1.0))
+    }
+
+    return if (np.get("norm", true)) {
+        weights.normalize()
+    } else {
+        weights
+    }
+}
+
 /**
  * This method is mostly duplicating the work done in constructors, e.g.,
  * Galago's [org.lemurproject.galago.core.retrieval.iterator.ScoreCombinationIteratorScoreCombinationIterator] does weight resolution, so we have to do it here.
@@ -72,19 +83,20 @@ internal fun galagoToIrene(expr: GExpr): QExpr {
     val np = expr.nodeParameters
     val children = expr.children();
     return when(expr.operator) {
-        "combine" -> {
-            val weights = ArrayList<Double>()
-            for (i in 0..children.size) {
-                weights.add(np.get("$i", 1.0))
-            }
-
-            val finalWeights = if (np.get("norm", true)) {
-                weights.normalize()
-            } else {
-                weights
-            }
-
-            CombineExpr(children.map { galagoToIrene(it) }, finalWeights)
+        "combine" -> CombineExpr(children.map { galagoToIrene(it) }, parseWeights(expr))
+        "wsum" -> {
+            val weights = parseWeights(expr)
+            val wchildren = children.map { galagoToIrene(it) }.zip(weights).map { (node, weight) -> node.weighted(weight) }
+            MultExpr(wchildren)
+        }
+        "bm25" -> {
+            val b = np.get("b", 0.75)
+            val k = np.get("k", 1.2)
+            BM25Expr(transformOnlyOneChild(children), b=b, k=k)
+        }
+        "linear", "jm" -> {
+            val lambda = np.get("lambda", 0.5)
+            LinearQLExpr(transformOnlyOneChild(children), lambda)
         }
         "dirichlet" -> {
             val mu = np.get("mu", 1500.0)
@@ -103,6 +115,20 @@ internal fun galagoToIrene(expr: GExpr): QExpr {
                     node
                 }
             }
+        }
+        "scale" -> WeightExpr(transformOnlyOneChild(children), np.get("default", 1.0))
+        "syn", "synonym" -> SynonymExpr(children.map { galagoToIrene(it) })
+        "all", "band" -> AndExpr(children.map { galagoToIrene(it) })
+        "any", "bor" -> OrExpr(children.map { galagoToIrene(it) })
+        "bool" -> BoolToScoreExpr(transformOnlyOneChild(children))
+        "require" -> {
+            assert(children.size == 2) { "Require should only have 2 children!" }
+            RequireExpr(
+                    galagoToIrene(children[0]),
+                    galagoToIrene(children[1]))
+        }
+        "lengths" -> {
+            LengthsExpr(np.get("field", null as String?))
         }
         "ordered", "od" -> OrderedWindowExpr(children.map { galagoToIrene(it) },
                 np.get("default", 1L).toInt())
