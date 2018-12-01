@@ -333,9 +333,9 @@ internal class WeightedLogSumEval(children: List<QueryEvalNode>, val weights: Do
     override fun explain(env: ScoringEnv): Explanation {
         val expls = children.map { it.explain(env) }
         if (matches(env)) {
-            return Explanation.match(score(env).toFloat(), "$className.Match ${weights.toList()}", expls)
+            return Explanation.match(score(env).toFloat(), "$className.Match ${weights.toList()} ${children.map { Math.log(it.score(env)) }}", expls)
         }
-        return Explanation.noMatch("$className.Miss ${weights.toList()}", expls)
+        return Explanation.noMatch("$className.Miss ${weights.toList()} ${children.map { Math.log(it.score(env)) }}", expls)
     }
 
     override fun toString(): String {
@@ -511,10 +511,11 @@ internal class DirichletSmoothingEval(override val child: QueryEvalNode, overrid
     override fun explain(env: ScoringEnv): Explanation {
         val c = child.count(env)
         val length = lengths.count(env)
+        val inline = Math.log((c + background) / (length + mu))
         if (c > 0) {
-            return Explanation.match(score(env).toFloat(), "$c/$length with mu=$mu, bg=$background dirichlet smoothing. $stats", listOf(child.explain(env)))
+            return Explanation.match(score(env).toFloat(), "$inline, $c/$length with mu=$mu, bg=$background dirichlet smoothing. $stats", listOf(child.explain(env)))
         } else {
-            return Explanation.noMatch("score=${score(env)} or $c/$length with mu=$mu, bg=$background dirichlet smoothing $stats ${stats.nonzeroCountProbability()}.", listOf(child.explain(env)))
+            return Explanation.noMatch("$inline, score=${score(env)} or $c/$length with mu=$mu, bg=$background dirichlet smoothing $stats ${stats.nonzeroCountProbability()}.", listOf(child.explain(env)))
         }
     }
 }

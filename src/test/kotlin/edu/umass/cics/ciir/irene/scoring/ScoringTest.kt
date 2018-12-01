@@ -92,7 +92,7 @@ class CommonTestIndexes : Closeable {
             }
             writer.commit()
             irene = writer.open()
-            galago = LocalRetrieval(gMemIndex)
+            galago = LocalRetrieval(gMemIndex, pmake { set("flattenCombine", false) })
             env = RRGalagoEnv(galago)
             env.estimateStats = "exact"
         }
@@ -307,6 +307,17 @@ class ScoringTest {
                 addChild(GExpr.Text(t3))
             }
             cmpResults("sdm($t1, $t2, NULL)", gq, iq, index)
+        }
+    }
+
+    @Test
+    fun testParseEquivSDMMissing() {
+        val index = resource.index!!
+        index.forEachTermPair { t1, t2 ->
+            val t3 = "NEVER_GONNA_HAPPEN"
+            val iq = parseFromGalago("#sdm($t1 $t2 $t3)")
+            val gq2 = iq.toGalago(index.env)
+            cmpResults("sdm($t1, $t2, NULL)", gq2, iq, index)
         }
     }
 
