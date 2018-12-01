@@ -8,6 +8,6 @@ git submodule update --init --recursive
 # Build it and install.
 cd galago
 ./scripts/installlib.sh
-mvn install -DskipTests
+mvn -q install -DskipTests
 cd ..
 
