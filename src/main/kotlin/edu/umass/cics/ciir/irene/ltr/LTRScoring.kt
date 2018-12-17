@@ -1,4 +1,4 @@
-package edu.umass.cics.ciir.irene.scoring
+package edu.umass.cics.ciir.irene.ltr
 
 import edu.umass.cics.ciir.irene.DataNeeded
 import edu.umass.cics.ciir.irene.GenericTokenizer
@@ -8,9 +8,7 @@ import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.incr
 import edu.umass.cics.ciir.irene.galago.pmake
 import edu.umass.cics.ciir.irene.lang.*
-import edu.umass.cics.ciir.irene.ltr.RRExpr
-import edu.umass.cics.ciir.irene.ltr.WeightedTerm
-import edu.umass.cics.ciir.irene.ltr.normalized
+import edu.umass.cics.ciir.irene.scoring.*
 import edu.umass.cics.ciir.irene.utils.IntList
 import gnu.trove.map.hash.TObjectIntHashMap
 import org.apache.lucene.index.Term
@@ -110,7 +108,7 @@ data class LTRTokenizedDocField(override val name: String, override val terms: L
 }
 
 
-data class LTRDoc(val name: String, val features: HashMap<String, Double>, val fields: HashMap<String,ILTRDocField>, var defaultField: String = "document") {
+data class LTRDoc(val name: String, val features: HashMap<String, Double>, val fields: HashMap<String, ILTRDocField>, var defaultField: String = "document") {
     fun field(field: String): ILTRDocField = fields[field] ?: error("No such field: $field in $this.")
     fun terms(field: String) = field(field).terms
     fun freqs(field: String) = field(field).freqs
@@ -134,6 +132,10 @@ data class LTRDoc(val name: String, val features: HashMap<String, Double>, val f
 
     fun featureForRanking(name: String, fallback: Double = Double.NEGATIVE_INFINITY) = features[name] ?: fallback;
 
+    fun eval(env: RREnv, q: QExpr): Double {
+        val expr = RREvalNodeExpr(env, q)
+        return expr.eval(this)
+    }
 
     /**
      * Take in a list of [feature_exprs] to evaluate and output the count of [errors] (NaN or Inf) per feature.

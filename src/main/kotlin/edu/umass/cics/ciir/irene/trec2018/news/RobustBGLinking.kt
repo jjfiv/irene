@@ -4,13 +4,10 @@ import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.LuceneTokenizer
 import edu.umass.cics.ciir.irene.galago.NamedMeasures
-import edu.umass.cics.ciir.irene.galago.toQueryResults
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.toRRExpr
-import edu.umass.cics.ciir.irene.scoring.ILTRDocField
-import edu.umass.cics.ciir.irene.scoring.LTRDoc
-import edu.umass.cics.ciir.irene.scoring.LTRDocField
-import edu.umass.cics.ciir.irene.scoring.LTRDocScoringEnv
+import edu.umass.cics.ciir.irene.ltr.LTRDoc
+import edu.umass.cics.ciir.irene.ltr.LTRDocField
 import edu.umass.cics.ciir.irene.utils.*
 import org.lemurproject.galago.core.eval.QueryJudgments
 import org.lemurproject.galago.core.eval.QueryResults

@@ -5,6 +5,7 @@ import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.IreneIndexer
 import edu.umass.cics.ciir.irene.galago.*
 import edu.umass.cics.ciir.irene.lang.*
+import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.ltr.toRRExpr
 import edu.umass.cics.ciir.irene.tokenize
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer

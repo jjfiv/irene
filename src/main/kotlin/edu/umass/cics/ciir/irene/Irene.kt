@@ -5,7 +5,7 @@ import com.github.benmanes.caffeine.cache.Caffeine
 import edu.umass.cics.ciir.irene.indexing.LDocBuilder
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.scoring.IreneQueryModel
-import edu.umass.cics.ciir.irene.scoring.LTRDoc
+import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.benchmark.byTask.feeds.DocData

@@ -4,8 +4,6 @@ import edu.umass.cics.ciir.irene.utils.computeEntropy
 import edu.umass.cics.ciir.irene.utils.mean
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
-import edu.umass.cics.ciir.irene.scoring.LTRDoc
-import edu.umass.cics.ciir.irene.scoring.LTRDocScoringEnv
 import edu.umass.cics.ciir.irene.scoring.QueryEvalNode
 import org.apache.lucene.search.Explanation
 
@@ -25,6 +23,8 @@ class RREvalNodeExpr(env: RREnv, val node: QueryEvalNode) : RRLeafExpr(env) {
         val scoreEnv = LTRDocScoringEnv(doc)
         return node.score(scoreEnv)
     }
+
+    fun match(doc: LTRDoc): Boolean = node.matches(LTRDocScoringEnv(doc))
 
     override fun explain(doc: LTRDoc): Explanation {
         val scoreEnv = LTRDocScoringEnv(doc)

@@ -3,6 +3,7 @@ package edu.umass.cics.ciir.irene.scoring
 import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
 import edu.umass.cics.ciir.irene.lang.*
+import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.utils.Fraction
 import gnu.trove.set.hash.TIntHashSet
 import org.apache.lucene.search.DocIdSetIterator

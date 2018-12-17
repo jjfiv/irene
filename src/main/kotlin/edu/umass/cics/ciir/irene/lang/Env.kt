@@ -1,7 +1,7 @@
 package edu.umass.cics.ciir.irene.lang
 
 import edu.umass.cics.ciir.irene.CountStats
-import edu.umass.cics.ciir.irene.scoring.LTREvalSetupContext
+import edu.umass.cics.ciir.irene.ltr.LTREvalSetupContext
 import edu.umass.cics.ciir.irene.scoring.exprToEval
 
 abstract class RREnv {

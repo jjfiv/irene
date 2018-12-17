@@ -5,7 +5,6 @@ import edu.umass.cics.ciir.irene.lang.DirQLExpr
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.SumExpr
 import edu.umass.cics.ciir.irene.lang.TextExpr
-import edu.umass.cics.ciir.irene.scoring.LTRDoc
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import org.lemurproject.galago.utility.MathUtils
 
