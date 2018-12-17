@@ -3,6 +3,7 @@ package edu.umass.cics.ciir.irene.scoring
 import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
 import edu.umass.cics.ciir.irene.lang.*
+import edu.umass.cics.ciir.irene.ltr.ILTRDoc
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.utils.Fraction
 import gnu.trove.set.hash.TIntHashSet
@@ -10,7 +11,7 @@ import org.apache.lucene.search.DocIdSetIterator
 import org.apache.lucene.search.Explanation
 
 open class ScoringEnv(var doc: Int=-1) {
-    open val ltr: LTRDoc get() = error("No LTR document available.")
+    open val ltr: ILTRDoc get() = error("No LTR document available.")
 }
 
 const val NO_MORE_DOCS = DocIdSetIterator.NO_MORE_DOCS

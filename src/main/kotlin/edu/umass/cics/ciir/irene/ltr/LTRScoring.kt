@@ -5,15 +5,12 @@ import edu.umass.cics.ciir.irene.GenericTokenizer
 import edu.umass.cics.ciir.irene.IIndex
 import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.galago.incr
-import edu.umass.cics.ciir.irene.galago.pmake
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.scoring.*
 import edu.umass.cics.ciir.irene.utils.IntList
 import gnu.trove.map.hash.TObjectIntHashMap
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.Explanation
-import org.lemurproject.galago.core.eval.QueryJudgments
 import org.lemurproject.galago.utility.Parameters
 
 /**
@@ -108,69 +105,37 @@ data class LTRTokenizedDocField(override val name: String, override val terms: L
 }
 
 
-data class LTRDoc(val name: String, val features: HashMap<String, Double>, val fields: HashMap<String, ILTRDocField>, var defaultField: String = "document") {
-    fun field(field: String): ILTRDocField = fields[field] ?: error("No such field: $field in $this.")
-    fun terms(field: String) = field(field).terms
-    fun freqs(field: String) = field(field).freqs
+interface ILTRDoc {
+    val name: String
+    fun field(field: String): ILTRDocField
+    fun terms(field: String): List<String>
+    fun freqs(field: String): BagOfWords
+    fun hasField(field: String): Boolean
+}
 
-    fun target() = field(defaultField)
+data class LTRDoc(override val name: String, val fields: HashMap<String, ILTRDocField>) : ILTRDoc {
+    override fun field(field: String): ILTRDocField = fields[field] ?: error("No such field: $field in $this.")
+    override fun terms(field: String) = field(field).terms
+    override fun freqs(field: String) = field(field).freqs
+    override fun hasField(field: String) = fields.contains(field)
 
-    constructor(name: String, text: String, field: String, tokenizer: GenericTokenizer = WhitespaceTokenizer()): this(name, hashMapOf(), hashMapOf(LTRDocField(field, text, tokenizer).toEntry()), field)
-
-    fun toJSONFeatures(qrels: QueryJudgments, qid: String) = pmake {
-        set("label", qrels[name])
-        set("qid", qid)
-        set("features", Parameters.wrap(features))
-        set("name", name)
-    }
-
-    fun toJSONDoc() = pmake {
-        set("features", Parameters.wrap(features))
-        set("id", name)
-        set("fields", Parameters.wrap(fields.mapValues { (_, f) -> f.text }))
-    }
-
-    fun featureForRanking(name: String, fallback: Double = Double.NEGATIVE_INFINITY) = features[name] ?: fallback;
+    constructor(name: String, text: String, field: String, tokenizer: GenericTokenizer = WhitespaceTokenizer())
+            : this(name, hashMapOf(LTRDocField(field, text, tokenizer).toEntry()))
 
     fun eval(env: RREnv, q: QExpr): Double {
         val expr = RREvalNodeExpr(env, q)
         return expr.eval(this)
     }
 
-    /**
-     * Take in a list of [feature_exprs] to evaluate and output the count of [errors] (NaN or Inf) per feature.
-     */
-    fun evalAndSetFeatures(feature_exprs: Map<String, RRExpr>, errors: MutableMap<String, Int>? = null) {
-        feature_exprs.forEach { fname, fexpr ->
-            val value = fexpr.eval(this)
-            if (errors != null && (value.isInfinite() || value.isNaN())) {
-                errors.incr(fname, 1)
-            } else {
-                this.features.put(fname, value)
-            }
-        }
-    }
-
-    fun forPassage(field: String, terms: List<String>): LTRDoc {
-        val orig = fields[field] ?: error("Field $field does not actually exist!")
-        val onlyField = LTRTokenizedDocField(field, terms, orig.tokenizer)
-        return LTRDoc(name, HashMap(features), hashMapOf(onlyField.toEntry()), field)
-    }
-
     companion object {
-        fun create(id: String, fjson: Parameters, fields: Set<String>, index: IIndex): LTRDoc = create(id, fjson, fields, index.defaultField, index.tokenizer)
-        fun create(id: String, fjson: Parameters, fields: Set<String>, defaultField: String, tokenizer: GenericTokenizer): LTRDoc {
+        fun create(id: String, fjson: Parameters, fields: Set<String>, index: IIndex): LTRDoc = create(id, fjson, fields, index.tokenizer)
+        fun create(id: String, fjson: Parameters, fields: Set<String>, tokenizer: GenericTokenizer): LTRDoc {
             val ltrFields = HashMap<String, ILTRDocField>()
-            val features = HashMap<String, Double>()
 
             fjson.keys.forEach { key ->
                 if (fjson.isString(key)) {
                     val fieldText = fjson.getStr(key)
                     ltrFields.put(key, LTRDocField(key, fieldText, tokenizer))
-                } else if(fjson.isDouble(key)) {
-                    features.put("double-field-$key", fjson.getDouble(key))
-                } else if(fjson.isLong(key)) {
-                    features.put("long-field-$key", fjson.getLong(key).toDouble())
                 } else {
                     println("Warning: Can't handle field: $key=${fjson[key]}")
                 }
@@ -181,12 +146,12 @@ data class LTRDoc(val name: String, val features: HashMap<String, Double>, val f
                     .filterNot { ltrFields.containsKey(it) }
                     .forEach { ltrFields[it] = LTREmptyDocField(it) }
 
-            return LTRDoc(id, features, ltrFields, defaultField)
+            return LTRDoc(id, ltrFields)
         }
     }
 }
 
-data class LTRDocScoringEnv(override val ltr: LTRDoc) : ScoringEnv(ltr.name.hashCode()) {
+data class LTRDocScoringEnv(override val ltr: ILTRDoc) : ScoringEnv(ltr.name.hashCode()) {
     override fun toString(): String {
         return "LTRDocScoringEnv(${ltr.name}, $doc)"
     }
@@ -221,7 +186,7 @@ abstract class LTRDocFeatureNode : QueryEvalNode {
 
 data class LTRDocLength(val field: String) : CountEvalNode, LTRDocFeatureNode() {
     override fun count(env: ScoringEnv): Int = env.ltr.field(field).length
-    override fun matches(env: ScoringEnv): Boolean = env.ltr.fields.contains(field)
+    override fun matches(env: ScoringEnv): Boolean = env.ltr.hasField(field)
 }
 
 data class LTRDocTerm(val field: String, val term: String): PositionsEvalNode, LTRDocFeatureNode() {

@@ -64,7 +64,7 @@ class CommonTestIndexes : Closeable {
             (0 until 10).forEach {
                 val shuf = docs.toMutableList()
                 Collections.shuffle(shuf)
-                docs.forEachIndexed { num, doc ->
+                docs.forEachIndexed { _, doc ->
                     val name = "doc${names.size}"
                     names.add(name)
 

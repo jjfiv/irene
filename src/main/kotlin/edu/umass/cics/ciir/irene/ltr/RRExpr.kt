@@ -13,20 +13,20 @@ fun QExpr.toRRExpr(env: RREnv): RRExpr {
 
 sealed class RRLeafExpr(env: RREnv) : RRExpr(env)
 sealed class RRExpr(val env: RREnv) {
-    abstract fun eval(doc: LTRDoc): Double
-    open fun explain(doc: LTRDoc): Explanation = Explanation.match(eval(doc).toFloat(), "RRExpr:${this.javaClass.simpleName}")
+    abstract fun eval(doc: ILTRDoc): Double
+    open fun explain(doc: ILTRDoc): Explanation = Explanation.match(eval(doc).toFloat(), "RRExpr:${this.javaClass.simpleName}")
 }
 
 class RREvalNodeExpr(env: RREnv, val node: QueryEvalNode) : RRLeafExpr(env) {
     constructor(env: RREnv, q: QExpr) : this(env, env.makeLTRQuery(q))
-    override fun eval(doc: LTRDoc): Double {
+    override fun eval(doc: ILTRDoc): Double {
         val scoreEnv = LTRDocScoringEnv(doc)
         return node.score(scoreEnv)
     }
 
     fun match(doc: LTRDoc): Boolean = node.matches(LTRDocScoringEnv(doc))
 
-    override fun explain(doc: LTRDoc): Explanation {
+    override fun explain(doc: ILTRDoc): Explanation {
         val scoreEnv = LTRDocScoringEnv(doc)
         return node.explain(scoreEnv)
     }
@@ -38,55 +38,50 @@ sealed class RRCCExpr(env: RREnv, val exprs: List<RRExpr>): RRExpr(env) {
     }
 }
 class RRSum(env: RREnv, exprs: List<RRExpr>): RRCCExpr(env, exprs) {
-    override fun eval(doc: LTRDoc): Double = exprs.sumByDouble { it.eval(doc) }
+    override fun eval(doc: ILTRDoc): Double = exprs.sumByDouble { it.eval(doc) }
     override fun toString(): String = "RRSum($exprs)"
 }
 class RRMean(env: RREnv, exprs: List<RRExpr>): RRCCExpr(env, exprs) {
     val N = exprs.size.toDouble()
-    override fun eval(doc: LTRDoc): Double = exprs.sumByDouble { it.eval(doc) } / N
+    override fun eval(doc: ILTRDoc): Double = exprs.sumByDouble { it.eval(doc) } / N
 }
 class RRMult(env: RREnv, exprs: List<RRExpr>): RRCCExpr(env, exprs) {
-    override fun eval(doc: LTRDoc): Double {
+    override fun eval(doc: ILTRDoc): Double {
         var prod = 1.0
         exprs.forEach { prod *= it.eval(doc) }
         return prod
     }
 }
 
-class RRFeature(env: RREnv, val name: String): RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double {
-        return doc.features[name]!!
-    }
-}
 class RRConst(env: RREnv, val value: Double) : RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double = value
+    override fun eval(doc: ILTRDoc): Double = value
 }
 
 class RRAvgWordLength(env: RREnv, val field: String = env.defaultField) : RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double = doc.terms(field).map { it.length }.mean()
+    override fun eval(doc: ILTRDoc): Double = doc.terms(field).map { it.length }.mean()
 }
 
 class RREntropy(env: RREnv, val field: String = env.defaultField) : RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double = doc.terms(field).computeEntropy()
+    override fun eval(doc: ILTRDoc): Double = doc.terms(field).computeEntropy()
 }
 
 /**
  * This calculates the number of unique terms in a document divided by its length. Similar to how noisy the document is, so I called it hte DocInfoQuotient. This is used in Absolute Discounting.
  */
 class RRDocInfoQuotient(env: RREnv, val field: String = env.defaultField): RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double {
+    override fun eval(doc: ILTRDoc): Double {
         val field = doc.field(field)
         return field.uniqTerms.toDouble() / Math.max(1.0,field.length.toDouble())
     }
 }
 
 class RRDocLength(env: RREnv, val field: String = env.defaultField) : RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double = doc.field(field).length.toDouble()
+    override fun eval(doc: ILTRDoc): Double = doc.field(field).length.toDouble()
 }
 
 // Return the index of a term in a document as a fraction: for news, this should be similar to importance. A query term at the first position will receive a 1.0; halfway through the document will receive a 0.5.
 class RRTermPosition(env: RREnv, val term: String, val field: String = env.defaultField): RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double {
+    override fun eval(doc: ILTRDoc): Double {
         val field = doc.field(field)
         val length = field.length.toDouble()
         val pos = field.terms.indexOf(term).toDouble()
@@ -99,7 +94,7 @@ class RRTermPosition(env: RREnv, val term: String, val field: String = env.defau
 }
 
 class RRJaccardSimilarity(env: RREnv, val target: Set<String>, val field: String = env.defaultField, val empty: Double=0.5): RRLeafExpr(env) {
-    override fun eval(doc: LTRDoc): Double {
+    override fun eval(doc: ILTRDoc): Double {
         if (target.isEmpty()) return empty
         val field = doc.field(field)
         val uniq = field.termSet
@@ -121,7 +116,7 @@ class RRLogLogisticTFScore(env: RREnv, val term: String, val field: String = env
         assert(stats.cf > 0) { "Term ``$term'' in field ``$field'' must actually occur in the collection for this feature to make sense." }
     }
 
-    override fun eval(doc: LTRDoc): Double {
+    override fun eval(doc: ILTRDoc): Double {
         val field = doc.field(field)
         val tf = field.count(term)
         val lengthRatio = avgl / field.length.toDouble()

@@ -136,7 +136,7 @@ interface IIndex : Closeable {
     fun getLTRDoc(id: String, fields: Set<String>): LTRDoc? {
         val num = documentById(id) ?: return null
         val fjson = docAsParameters(num) ?: return null
-        return LTRDoc.create(id, fjson, fields, defaultField, tokenizer)
+        return LTRDoc.create(id, fjson, fields, tokenizer)
     }
     fun count(q: QExpr): Int
 }

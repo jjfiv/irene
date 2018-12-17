@@ -66,7 +66,7 @@ fun main(args: Array<String>) {
                         val doc = index.document(it.doc, setOf(index.idFieldName, index.defaultField))!!
                         val id = doc.getField(index.idFieldName).stringValue()
                         val body = LTRDocField(index.defaultField, doc.getField(index.defaultField).stringValue(), LuceneTokenizer(index.analyzer))
-                        LTRDoc(id, hashMapOf(), hashMapOf(body.toEntry()), index.defaultField)
+                        LTRDoc(id, hashMapOf(body.toEntry()))
                     }
             msg.incr()?.let {
                 println("Pool prepared for $qid... $it")

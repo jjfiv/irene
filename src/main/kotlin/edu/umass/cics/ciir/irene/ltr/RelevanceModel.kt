@@ -9,36 +9,6 @@ import gnu.trove.map.hash.TObjectDoubleHashMap
 import org.lemurproject.galago.utility.MathUtils
 
 
-fun computeRelevanceModel(docs: List<LTRDoc>, feature: String, fbDocs: Int, field: String, flat: Boolean = false, stopwords: Set<String> = inqueryStop, logSumExp:Boolean=false): RelevanceModel {
-    val fbdocs = docs.sortedByDescending {
-        it.features[feature] ?: error("Missing Feature! $feature in $it")
-    }.take(fbDocs)
-
-    val scores = fbdocs.map { it.features[feature]!! }
-    val priors = if (!flat && logSumExp && scores.isNotEmpty()) {
-        val norm = MathUtils.logSumExp(scores.toDoubleArray())
-        scores.map { Math.exp(it-norm) }
-    } else {
-        scores
-    }
-
-    val rmModel = TObjectDoubleHashMap<String>()
-    fbdocs.forEachIndexed { i, doc ->
-        val local = doc.field(field).freqs.counts
-        val length = doc.field(field).freqs.length
-
-        val prior = if (flat) 1.0 else priors[i]
-        local.forEachEntry {term, count ->
-            if (stopwords.contains(term)) return@forEachEntry true
-            val prob = prior * count.toDouble() / length
-            rmModel.adjustOrPutValue(term, prob, prob)
-            true
-        }
-    }
-
-    return RelevanceModel(rmModel, field)
-}
-
 data class WeightedTerm(val score: Double, val term: String, val field: String = "") : Comparable<WeightedTerm> {
     // Natural order: biggest first.
     override fun compareTo(other: WeightedTerm): Int {
