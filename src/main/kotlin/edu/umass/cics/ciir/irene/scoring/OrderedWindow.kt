@@ -177,20 +177,6 @@ abstract class CountWindow(children: List<PositionsEvalNode>) : AndEval<Position
  */
 class OrderedWindow(children: List<PositionsEvalNode>, val step: Int) : CountWindow(children) {
     override fun compute(iters: List<PositionsIter>): Int = countOrderedWindows(iters, step)
-
-    /** TODO is the minimum possible at this document is always zero for a [CountEvalNode]? */
-    fun min(env: ScoringEnv): Int = 0
-    /** Custom maximization logic for [OrderedWindow]. This is the same as [SmallerCountWindow] */
-    fun max(env: ScoringEnv): Int {
-        var min = Integer.MAX_VALUE
-        for (c in children) {
-            val cc = c.count(env)
-            if (cc == 0) return 0
-            min = minOf(cc, min)
-        }
-        return min
-    }
-
 }
 
 class UnorderedWindow(children: List<PositionsEvalNode>, val width: Int) : CountWindow(children) {

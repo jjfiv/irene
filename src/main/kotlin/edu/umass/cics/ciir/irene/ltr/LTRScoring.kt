@@ -5,10 +5,11 @@ import edu.umass.cics.ciir.irene.GenericTokenizer
 import edu.umass.cics.ciir.irene.IIndex
 import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.lang.*
+import edu.umass.cics.ciir.irene.lang.DenseLongField
+import edu.umass.cics.ciir.irene.lang.QExpr
+import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.*
 import edu.umass.cics.ciir.irene.utils.IntList
-import gnu.trove.map.hash.TObjectIntHashMap
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.Explanation
 import org.lemurproject.galago.utility.Parameters
@@ -18,45 +19,13 @@ import org.lemurproject.galago.utility.Parameters
  * @author jfoley.
  */
 
-class BagOfWords(terms: List<String>) {
-    val counts = TObjectIntHashMap<String>()
-    val length = terms.size.toDouble()
-    val l2norm: Double by lazy {
-        var sumSq = 0.0
-        counts.forEachValue { c ->
-            sumSq += c*c
-            true
-        }
-        Math.sqrt(sumSq)
-    }
-    init {
-        terms.forEach { counts.adjustOrPutValue(it, 1, 1) }
-    }
-    fun prob(term: String): Double = counts.get(term) / length
-    fun count(term: String): Int {
-        if (!counts.containsKey(term)) return 0
-        return counts[term]
-    }
-    private fun toTerms(): List<WeightedTerm> {
-        val output = ArrayList<WeightedTerm>(counts.size())
-        counts.forEachEntry {term, weight ->
-            output.add(WeightedTerm(weight.toDouble(), term))
-        }
-        return output
-    }
-    fun toTerms(k: Int): List<WeightedTerm> = toTerms().sorted().take(k).normalized()
-    fun toQExpr(k: Int, scorer: (TextExpr)-> QExpr = { DirQLExpr(it) }, targetField: String? = null, statsField: String? = null) = SumExpr(toTerms(k).map {
-        scorer(TextExpr(it.term, field = targetField, statsField = statsField)).weighted(it.score)
-    })
-
-}
 
 interface ILTRDocField {
     val name: String
     val text: String
     val tokenizer: GenericTokenizer
     val terms: List<String>
-    val freqs: BagOfWords
+    val freqs: LanguageModel<String>
     val length: Int
     val uniqTerms: Int
     val termSet: Set<String>
@@ -64,11 +33,21 @@ interface ILTRDocField {
     fun count(term: String): Int
 }
 
+data class LTRBagDocField(override val name: String, override val freqs: LanguageModel<String>): ILTRDocField {
+    override val text: String get() = throw UnsupportedOperationException()
+    override val tokenizer get() = throw UnsupportedOperationException()
+    override fun count(term: String): Int = freqs.count(term)
+    override val terms: List<String> get() = throw UnsupportedOperationException()
+    override val length: Int = freqs.length.toInt()
+    override val uniqTerms: Int get() = termSet.size
+    override val termSet: Set<String> get() = freqs.termSet()
+}
+
 data class LTREmptyDocField(override val name: String) : ILTRDocField {
     override val text: String = ""
     override val tokenizer: GenericTokenizer = WhitespaceTokenizer()
     override val terms: List<String> = emptyList()
-    override val freqs: BagOfWords = BagOfWords(emptyList())
+    override val freqs: LanguageModel<String> = BagOfWords(emptyList())
     override val length: Int = 1
     override val uniqTerms: Int = 0
     override val termSet: Set<String> = emptySet()
@@ -79,11 +58,11 @@ data class LTRMergedField(override val name: String, val components: List<ILTRDo
     override val tokenizer: GenericTokenizer get() = components[0].tokenizer
     override val text: String by lazy { components.joinToString(separator = "\n") { it.text } }
     override val terms: List<String> by lazy { components.flatMap { it.terms } }
-    override val freqs: BagOfWords by lazy { BagOfWords(terms) }
+    override val freqs: LanguageModel<String> by lazy { BagOfWords(terms) }
     override val length: Int get() = terms.size
-    override val uniqTerms: Int get() = freqs.counts.size()
+    override val uniqTerms: Int get() = freqs.termSet().size
     override fun count(term: String): Int = freqs.count(term)
-    override val termSet: Set<String> get() = freqs.counts.keySet()
+    override val termSet: Set<String> get() = freqs.termSet()
 }
 
 data class LTRDocField(override val name: String, override val text: String, override val tokenizer: GenericTokenizer = WhitespaceTokenizer()) : ILTRDocField {
@@ -109,16 +88,20 @@ interface ILTRDoc {
     val name: String
     fun field(field: String): ILTRDocField
     fun terms(field: String): List<String>
-    fun freqs(field: String): BagOfWords
+    fun freqs(field: String): LanguageModel<String>
     fun hasField(field: String): Boolean
 }
 
-data class LTRDoc(override val name: String, val fields: HashMap<String, ILTRDocField>) : ILTRDoc {
+/**
+ * Lazy implementation of [ILTRDoc] based upon [ILTRDocField].
+ */
+data class LTRDoc(override val name: String, val fields: Map<String, ILTRDocField>) : ILTRDoc {
     override fun field(field: String): ILTRDocField = fields[field] ?: error("No such field: $field in $this.")
     override fun terms(field: String) = field(field).terms
     override fun freqs(field: String) = field(field).freqs
     override fun hasField(field: String) = fields.contains(field)
 
+    constructor(name: String, field: ILTRDocField) : this(name, mapOf(field.toEntry()))
     constructor(name: String, text: String, field: String, tokenizer: GenericTokenizer = WhitespaceTokenizer())
             : this(name, hashMapOf(LTRDocField(field, text, tokenizer).toEntry()))
 
