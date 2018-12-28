@@ -38,7 +38,7 @@ class MutableBagOfWords : LanguageModelBuilder<String> {
     override fun toTerms(): List<WeightedTerm> {
         val output = ArrayList<WeightedTerm>(hashMap.size())
         hashMap.forEachEntry {term, weight ->
-            output.add(WeightedTerm(weight, term))
+            output.add(WeightedTerm(weight / length, term))
         }
         return output
     }
@@ -99,7 +99,7 @@ class BagOfWords(val counts: TObjectIntHashMap<String>) : LanguageModel<String> 
     override fun toTerms(): List<WeightedTerm> {
         val output = ArrayList<WeightedTerm>(counts.size())
         counts.forEachEntry {term, weight ->
-            output.add(WeightedTerm(weight.toDouble(), term))
+            output.add(WeightedTerm(weight.toDouble() / length, term))
         }
         return output
     }

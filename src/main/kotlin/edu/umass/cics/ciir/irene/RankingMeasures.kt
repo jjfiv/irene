@@ -160,14 +160,14 @@ object RankingMeasures {
     val points = data.toMutableList()
     points.sortWith(kind.getComparator())
 
-    var sumPrecision = 0;
-    var recallPointCount = 0;
+    var sumPrecision: Double = 0.0
+    var recallPointCount: Int = 0;
 
     for (i in points.indices) {
       if(points[i].truth) {
         val rank = i + 1;
         recallPointCount++;
-        sumPrecision += recallPointCount / rank;
+        sumPrecision += (recallPointCount / rank.toDouble())
       }
     }
 
