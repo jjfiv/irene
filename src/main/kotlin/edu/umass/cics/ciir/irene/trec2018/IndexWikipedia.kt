@@ -17,7 +17,7 @@ fun main(args: Array<String>) {
 
     val params = IndexParams().apply {
         create()
-        withPath(File(argp.get("index", "/mnt/scratch/jfoley/trec-news-2018/news.irene")))
+        withPath(File(argp.get("index", "/mnt/scratch/jfoley/trec-news-2018/wiki.irene")))
     }
     val msg = CountingDebouncer(7_100_813L)
 

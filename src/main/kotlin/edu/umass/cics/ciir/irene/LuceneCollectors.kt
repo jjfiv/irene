@@ -1,11 +1,11 @@
 package edu.umass.cics.ciir.irene
 
-import edu.umass.cics.ciir.irene.utils.ScoringHeap
-import edu.umass.cics.ciir.irene.utils.WeightedForHeap
 import edu.umass.cics.ciir.irene.lang.MultiExpr
 import edu.umass.cics.ciir.irene.scoring.IreneQueryScorer
 import edu.umass.cics.ciir.irene.scoring.MultiEvalNode
 import edu.umass.cics.ciir.irene.scoring.ScoringEnv
+import edu.umass.cics.ciir.irene.utils.ScoringHeap
+import edu.umass.cics.ciir.irene.utils.WeightedForHeap
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.*
 
@@ -92,7 +92,7 @@ class PoolingCollectorManager(val mq: MultiExpr, val poolSize: Int): CollectorMa
                 lateinit var env: ScoringEnv
                 override fun setScorer(scorer: Scorer) {
                     val iqs = scorer as IreneQueryScorer
-                    eval = iqs.eval as MultiEvalNode
+                    eval = iqs.eval.find { it is MultiEvalNode } as MultiEvalNode
                     env = iqs.env
                 }
                 override fun collect(doc: Int) {

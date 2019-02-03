@@ -4,7 +4,6 @@ import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.ILTRDoc
-import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.utils.Fraction
 import gnu.trove.set.hash.TIntHashSet
 import org.apache.lucene.search.DocIdSetIterator
@@ -39,6 +38,18 @@ interface QueryEvalNode {
         for (c in children) {
             c.visit(fn)
         }
+    }
+
+    fun find(fn: (QueryEvalNode)->Boolean): QueryEvalNode? {
+        if (fn(this)) {
+            return this
+        }
+        for (c in children) {
+            c.find(fn)?.let {
+                return it
+            }
+        }
+        return null
     }
 }
 

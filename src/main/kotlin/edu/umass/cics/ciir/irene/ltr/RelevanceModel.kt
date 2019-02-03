@@ -1,13 +1,11 @@
 package edu.umass.cics.ciir.irene.ltr
 
-import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.lang.DirQLExpr
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.SumExpr
 import edu.umass.cics.ciir.irene.lang.TextExpr
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import gnu.trove.map.hash.TObjectIntHashMap
-import org.lemurproject.galago.utility.MathUtils
 
 
 interface LanguageModel<T> {
@@ -103,6 +101,7 @@ class BagOfWords(val counts: TObjectIntHashMap<String>) : LanguageModel<String> 
         }
         return output
     }
+
 }
 
 data class WeightedTerm(val score: Double, val term: String, val field: String = "") : Comparable<WeightedTerm> {
