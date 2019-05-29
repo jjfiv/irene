@@ -10,11 +10,11 @@ import edu.unh.cs.treccar_v2.read_data.DeserializeData
 import org.lemurproject.galago.utility.StreamCreator
 import java.io.File
 
-fun main(args: Array<String>) {
+fun main() {
     val queries = loadEntityLinkQueries("${System.getenv("HOME")}/code/queries/trec_news/newsir18-entity-ranking-topics.xml")
     val pageNames = queries.flatMapTo(HashSet()) { q ->
         q.ent.map { e ->
-            e.link.substringAfter("enwiki:")
+            e.link
         }
     }
     val mapper = ObjectMapper().registerKotlinModule()
@@ -22,18 +22,17 @@ fun main(args: Array<String>) {
     var found = 0
     File("news2018.wikipage.jsonl").smartPrint { output ->
         DeserializeData.iterAnnotations(StreamCreator.openInputStream(TrecNewsWikiSource)).forEach { page ->
-            val pageId = page.pageId.substringAfter("enwiki:")
-            if (pageNames.contains(pageId)) {
+            if (pageNames.contains(page.pageId)) {
                 output.println(mapper.writeValueAsString(page))
                 found += 1
+                if (found == pageNames.size) {
+                    return@smartPrint
+                }
             }
             msg.incr()?.let {
                 println("Finding TREC News Wikipedia: ${found}/${pageNames.size} ${it}")
             }
-            if (found == pageNames.size) {
-                return@smartPrint
-            }
-
         }
     }
+    println("Done!")
 }
