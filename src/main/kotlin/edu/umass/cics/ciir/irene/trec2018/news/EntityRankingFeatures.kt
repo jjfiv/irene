@@ -22,8 +22,8 @@ fun main(args: Array<String>) {
     var found = 0
     File("news2018.wikipage.jsonl").smartPrint { output ->
         DeserializeData.iterAnnotations(StreamCreator.openInputStream(TrecNewsWikiSource)).forEach { page ->
-            println(page.pageId)
-            if (pageNames.contains(page.pageId)) {
+            val pageId = page.pageId.substringAfter("enwiki:")
+            if (pageNames.contains(pageId)) {
                 output.println(mapper.writeValueAsString(page))
                 found += 1
             }
