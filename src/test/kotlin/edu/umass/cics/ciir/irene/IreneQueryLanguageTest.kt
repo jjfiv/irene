@@ -1,7 +1,7 @@
 package edu.umass.cics.ciir.irene
 
 import edu.umass.cics.ciir.irene.lang.*
-import junit.framework.Assert.assertEquals
+import org.junit.Assert.assertEquals
 import org.junit.Assert
 import org.junit.Test
 

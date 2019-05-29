@@ -8,18 +8,20 @@ import org.lemurproject.galago.utility.Parameters
 import org.lemurproject.galago.utility.StreamCreator
 import java.io.File
 
+val TrecNewsWikiSource = "/mnt/scratch/jfoley/trec-news-2018/all-enwiki-20170820/all-enwiki-20170820.cbor.gz"
+val TrecNewsWikiCount = 7_100_813L
 
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args)
 
-    val input = File(argp.get("input", "/mnt/scratch/jfoley/trec-news-2018/all-enwiki-20170820/all-enwiki-20170820.cbor.gz"))
+    val input = File(argp.get("input", TrecNewsWikiSource))
     assert(input.exists())
 
     val params = IndexParams().apply {
         create()
         withPath(File(argp.get("index", "/mnt/scratch/jfoley/trec-news-2018/wiki.irene")))
     }
-    val msg = CountingDebouncer(7_100_813L)
+    val msg = CountingDebouncer(TrecNewsWikiCount)
 
     val index = IreneIndexer(params).use { writer ->
         DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).forEach { page ->

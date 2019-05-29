@@ -30,13 +30,14 @@ data class WapoArticle(
         val contents: List<WapoContent?>?
 )
 
-val defaultWapoIndexPath = "/mnt/scratch/jfoley/trec-news-2018/wapo.irene"
+val defaultWapoIndexPath = "indexes/wapo.irene"
+val defaultWapoSourcePath = System.getenv("HOME") + "/data/TREC_Washington_Post_collection.v2.jl.gz"
 
 fun main(args: Array<String>) {
     val mapper = ObjectMapper().registerKotlinModule()
     val argp = Parameters.parseArgs(args)
 
-    val input = File(argp.get("input", "/mnt/scratch/jfoley/trec-news-2018/WashingtonPost.v2/data/TREC_Washington_Post_collection.v2.jl.gz"))
+    val input = File(argp.get("input", defaultWapoSourcePath))
     assert(input.exists())
     val params = IndexParams().apply {
         create()

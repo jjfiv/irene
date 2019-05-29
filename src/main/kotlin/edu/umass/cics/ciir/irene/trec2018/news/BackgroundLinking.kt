@@ -14,6 +14,7 @@ import edu.umass.cics.ciir.irene.utils.timed
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import gnu.trove.map.hash.TObjectIntHashMap
 import org.jsoup.Jsoup
+import org.jsoup.parser.Parser
 import org.lemurproject.galago.core.eval.QueryResults
 import org.lemurproject.galago.core.eval.SimpleEvalDoc
 import org.lemurproject.galago.utility.Parameters
@@ -38,7 +39,7 @@ data class TrecNewsEntityLinkQuery(val qid: String, val docid: String, val url: 
 fun loadEntityLinkQueries(path: String): List<TrecNewsEntityLinkQuery> {
     val trecXMLDoc = File(path)
     if (!trecXMLDoc.exists()) error("TREC News BG Linking Query file not found at: $path")
-    val doc = Jsoup.parse(trecXMLDoc, "UTF-8")
+    val doc = Jsoup.parse(trecXMLDoc.readText(Charsets.UTF_8), "", Parser.xmlParser())
     return doc.select("top").map { query ->
         val qid = query.selectFirst("num").text().substringAfter("Number:").trim()
         val docid = query.selectFirst("docid").text().trim()
@@ -48,6 +49,7 @@ fun loadEntityLinkQueries(path: String): List<TrecNewsEntityLinkQuery> {
             val id = etag.selectFirst("id").text().trim()
             val mention = etag.selectFirst("mention").text().trim()
             val link = etag.selectFirst("link").text().trim()
+            assert(link.startsWith("enwiki:"))
             TrecNewsEntity(id, mention, link)
         }
 
