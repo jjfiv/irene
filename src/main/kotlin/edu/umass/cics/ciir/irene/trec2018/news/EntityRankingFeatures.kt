@@ -10,6 +10,10 @@ import edu.unh.cs.treccar_v2.read_data.DeserializeData
 import org.lemurproject.galago.utility.StreamCreator
 import java.io.File
 
+data class SimpleWikiPage(val id: String, val paragraphs: List<String>, val names: List<String>) {
+
+}
+
 fun main() {
     val queries = loadEntityLinkQueries("${System.getenv("HOME")}/code/queries/trec_news/newsir18-entity-ranking-topics.xml")
     val pageNames = queries.flatMapTo(HashSet()) { q ->
@@ -23,7 +27,14 @@ fun main() {
     File("news2018.wikipage.jsonl").smartPrint { output ->
         DeserializeData.iterAnnotations(StreamCreator.openInputStream(TrecNewsWikiSource)).forEach { page ->
             if (pageNames.contains(page.pageId)) {
-                output.println(mapper.writeValueAsString(page))
+                val altNames = ArrayList<String>()
+                altNames.addAll(page.pageMetadata.disambiguationNames)
+                altNames.addAll(page.pageMetadata.inlinkAnchors)
+                altNames.addAll(page.pageMetadata.redirectNames)
+                output.println(mapper.writeValueAsString(SimpleWikiPage(
+                        page.pageId,
+                        page.flatSectionPathsParagraphs().map { it.paragraph.textOnly },
+                        altNames)))
                 found += 1
                 if (found == pageNames.size) {
                     return@smartPrint
