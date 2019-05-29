@@ -10,7 +10,7 @@ import org.apache.lucene.analysis.tokenattributes.CharTermAttribute
 import org.lemurproject.galago.core.parse.TagTokenizer
 import org.lemurproject.galago.utility.StringPooler
 import kotlin.concurrent.getOrSet
-import kotlin.coroutines.experimental.buildSequence
+import kotlin.sequences.sequence
 
 /**
  *
@@ -28,7 +28,7 @@ class IreneEnglishAnalyzer : Analyzer() {
 
 fun Analyzer.tokenize(field: String, input: String): List<String> = this.tokenSequence(field, input).toList()
 
-fun Analyzer.tokenSequence(field: String, input: String): Sequence<String> = buildSequence {
+fun Analyzer.tokenSequence(field: String, input: String): Sequence<String> = sequence {
     tokenStream(field, input).use { body ->
         val charTermAttr = body.addAttribute(CharTermAttribute::class.java)
 
