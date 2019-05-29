@@ -282,7 +282,7 @@ fun toSimpleString(input: QExpr, out: Appendable, prefix: String="") {
     })
 }
 
-fun TrecContentSource.docs(): Sequence<DocData> = buildSequence {
+fun TrecContentSource.docs(): Sequence<DocData> = sequence {
     while(true) {
         val doc = DocData()
         try {
