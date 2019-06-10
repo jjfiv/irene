@@ -36,13 +36,13 @@ class RefCountedIO(private val io: IOSystem) : java.io.Closeable
 
 inline fun <T> lucene_try(action: ()->T): T? {
     return try {
-        action()
+        return action()
     } catch (missing: IllegalArgumentException) {
         missing.printStackTrace()
-        null
+        return null
     } catch (ioe: IOException) {
         ioe.printStackTrace()
-        null
+        return null
     }
 }
 

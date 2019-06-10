@@ -16,7 +16,10 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
         throw e
     }
     is DenseLongField -> ctx.denseLongField(q)
-    is LuceneExpr -> TODO()
+    is LuceneExpr -> {
+        q.applyEnvironment(ctx.env)
+        ctx.setupLuceneRaw(q.query!!) ?: error("Unsupported LuceneExpr")
+    }
     is SynonymExpr -> TODO()
     is AndExpr -> BooleanAndEval(q.children.map { exprToEval(it, ctx) })
     is OrExpr -> BooleanOrEval(q.children.map { exprToEval(it, ctx) })

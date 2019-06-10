@@ -6,11 +6,13 @@ import edu.umass.cics.ciir.irene.IIndex
 import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.lang.DenseLongField
+import edu.umass.cics.ciir.irene.lang.LuceneQuery
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.*
 import edu.umass.cics.ciir.irene.utils.IntList
 import org.apache.lucene.index.Term
+import org.apache.lucene.search.DocIdSetIterator
 import org.apache.lucene.search.Explanation
 import org.lemurproject.galago.utility.Parameters
 
@@ -141,9 +143,9 @@ data class LTRDocScoringEnv(override val ltr: ILTRDoc) : ScoringEnv(ltr.name.has
 }
 
 class LTREvalSetupContext(override val env: RREnv) : EvalSetupContext {
-    override fun denseLongField(expr: DenseLongField): QueryEvalNode {
-        TODO("not implemented")
-    }
+    override fun luceneIter(query: LuceneQuery): DocIdSetIterator = TODO("lucene-ltr")
+    override fun setupLuceneRaw(q: LuceneQuery): QueryEvalNode? = TODO("lucene-ltr")
+    override fun denseLongField(expr: DenseLongField): QueryEvalNode = TODO("lucene-ltr")
     val termCache = HashMap<Term, LTRDocTerm>()
     val lengthsCache = HashMap<String, LTRDocLength>()
     override fun create(term: Term, needed: DataNeeded): QueryEvalNode = termCache.computeIfAbsent(term, {

@@ -25,9 +25,20 @@ interface EvalSetupContext {
     fun numDocs(): Int
     fun selectRelativeDocIds(ids: List<Int>): IntList
     fun denseLongField(expr: DenseLongField): QueryEvalNode
+    fun setupLuceneRaw(q: LuceneQuery): QueryEvalNode?
+    fun luceneIter(query: LuceneQuery): DocIdSetIterator
 }
 
 data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) : EvalSetupContext {
+    override fun luceneIter(query: LuceneQuery): DocIdSetIterator {
+        val weight = query.createWeight(searcher, false, 1.0f);
+        val scorer = weight.scorer(context)
+        return scorer.iterator()
+    }
+
+    override fun setupLuceneRaw(q: LuceneQuery): QueryEvalNode? {
+        return LuceneWeightNode(q.createWeight(searcher, true, 1.0f), context)
+    }
 
     override val env = iqm.env
     val searcher = iqm.index.searcher

@@ -2,10 +2,12 @@ package edu.umass.cics.ciir.irene.scoring
 
 import edu.umass.cics.ciir.irene.utils.ComputedStats
 import edu.umass.cics.ciir.irene.utils.IntList
+import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.index.NumericDocValues
 import org.apache.lucene.index.PostingsEnum
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.Explanation
+import org.apache.lucene.search.Weight
 
 /**
  * Created from [TextExpr] via [exprToEval]
@@ -140,3 +142,24 @@ class LuceneTermPositions(term: Term, postings: PostingsEnum) : LuceneTermCounts
     }
 }
 
+class LuceneWeightNode(val lqw: Weight, val context: LeafReaderContext): QueryEvalNode, LeafEvalNode() {
+    val scorer = lqw.scorer(context)
+    val iter = scorer.iterator()
+
+    override fun score(env: ScoringEnv): Double = scorer.score().toDouble()
+    override fun count(env: ScoringEnv): Int = scorer.freq()
+
+    override fun matches(env: ScoringEnv): Boolean {
+        val doc = env.doc
+        if (iter.docID() < doc) {
+            iter.advance(doc)
+        }
+        if (iter.docID() == doc) {
+            return true
+        }
+        return false
+    }
+
+    override fun explain(env: ScoringEnv): Explanation = lqw.explain(context, env.doc)
+    override fun estimateDF(): Long = iter.cost()
+}

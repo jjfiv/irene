@@ -253,10 +253,21 @@ data class TextExpr(var text: String, private var field: String? = null, private
 data class SynonymExpr(override var children: List<QExpr>): OpExpr() {
 }
 data class LuceneExpr(val rawQuery: String, var query: LuceneQuery? = null ) : LeafExpr() {
-    fun parse(env: IreneQueryLanguage) = LuceneExpr(rawQuery,
-            lucene_try {
-                env.luceneQueryParser.parse(rawQuery)
-            } ?: error("Could not parse lucene expression: ``${rawQuery}''"))
+    fun parse(env: IreneQueryLanguage) {
+        if (this.query != null) {
+            return
+        }
+        this.query = lucene_try {
+            env.luceneQueryParser.parse(rawQuery)
+        } ?: error("Could not parse lucene expression: ``${rawQuery}''")
+    }
+    override fun applyEnvironment(env: RREnv) {
+        if (env is IreneQueryLanguage) {
+            this.parse(env)
+        } else {
+            error("Cannot have LuceneExpr in environment=$env")
+        }
+    }
     override fun copyLeaf() = LuceneExpr(rawQuery, query)
 }
 
