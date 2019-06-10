@@ -3,6 +3,7 @@ package edu.umass.cics.ciir.irene.lang
 import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.scoring.*
 import org.apache.lucene.index.Term
+import org.apache.lucene.search.*
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -73,14 +74,40 @@ sealed class QExpr {
     }
     open fun applyEnvironment(env: RREnv) {}
 
+    private fun findLuceneTextNodes(lq: Query, out: HashSet<TextExpr>) {
+        when(lq) {
+            is TermQuery -> out.add(TextExpr(lq.term))
+            is BooleanQuery -> lq.clauses().map { clause -> findLuceneTextNodes(clause.query, out) }
+            is PhraseQuery -> out.addAll(lq.terms.map { TextExpr(it) })
+            is ConstantScoreQuery -> findLuceneTextNodes(lq.query, out)
+            is DisjunctionMaxQuery -> lq.disjuncts.forEach { qc ->
+                findLuceneTextNodes(qc, out)
+            }
+
+            // TODO(someday) wildcards need to be expanded first.
+            is WildcardQuery -> out.add(TextExpr(lq.term))
+            is FuzzyQuery -> out.add(TextExpr(lq.term))
+            is RegexpQuery -> out.add(TextExpr(lq.regexp))
+            is PrefixQuery -> out.add(TextExpr(lq.prefix))
+            is MultiPhraseQuery -> out.addAll(lq.termArrays.flatMap { arr -> arr.map{ TextExpr(it) } })
+
+            is PointRangeQuery,
+            is TermRangeQuery -> TODO("Can't support this now...")
+
+
+            is MatchAllDocsQuery -> {} // TODO, represent this?
+        }
+    }
     fun findTextNodes(): List<TextExpr> {
-        val out = ArrayList<TextExpr>()
+        val out = HashSet<TextExpr>()
         visit {
             if (it is TextExpr) {
                 out.add(it)
+            } else if (it is LuceneExpr) {
+                findLuceneTextNodes(it.query!!, out)
             }
         }
-        return out
+        return out.sorted()
     }
 
     fun visit(each: (QExpr)->Unit) {
@@ -234,7 +261,15 @@ fun BoolExpr(field: String, desired: Boolean=true): QExpr {
 /**
  * [TextExpr] represent a term [text] inside a [field] smoothed with statistics [stats] derived from [statsField]. By default [field] and [statsField] will be the same, and will be filled with sane defaults if left empty.
  */
-data class TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS) : LeafExpr() {
+data class TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS) : LeafExpr(), Comparable<TextExpr> {
+    override fun compareTo(other: TextExpr): Int {
+        val cmp = (field ?: "").compareTo(other.field ?: "")
+        if (cmp == 0) {
+            return text.compareTo(other.text)
+        }
+        return cmp
+    }
+
     override fun copyLeaf() = TextExpr(text, field, statsField, needed)
     constructor(term: Term) : this(term.text(), term.field())
 
