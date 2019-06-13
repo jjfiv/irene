@@ -32,12 +32,15 @@ interface EvalSetupContext {
 data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) : EvalSetupContext {
     override fun luceneIter(query: LuceneQuery): DocIdSetIterator {
         val weight = query.createWeight(searcher, false, 1.0f);
-        val scorer = weight.scorer(context)
+        val scorer = weight.scorer(context) ?: return DocIdSetIterator.empty()
         return scorer.iterator()
     }
 
     override fun setupLuceneRaw(q: LuceneQuery): QueryEvalNode? {
-        return LuceneWeightNode(q.createWeight(searcher, true, 1.0f), context)
+        val lqw = q.createWeight(searcher, true, 1.0f)
+        val scorer: Scorer = lqw.scorer(context) ?: return LuceneMissingScore(q.toString())
+        val iter = scorer.iterator() ?: return LuceneMissingScore(q.toString())
+        return LuceneWeightNode(lqw, scorer, iter, context)
     }
 
     override val env = iqm.env

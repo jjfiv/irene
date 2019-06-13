@@ -6,7 +6,9 @@ import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.index.NumericDocValues
 import org.apache.lucene.index.PostingsEnum
 import org.apache.lucene.index.Term
+import org.apache.lucene.search.DocIdSetIterator
 import org.apache.lucene.search.Explanation
+import org.apache.lucene.search.Scorer
 import org.apache.lucene.search.Weight
 
 /**
@@ -142,10 +144,15 @@ class LuceneTermPositions(term: Term, postings: PostingsEnum) : LuceneTermCounts
     }
 }
 
-class LuceneWeightNode(val lqw: Weight, val context: LeafReaderContext): QueryEvalNode, LeafEvalNode() {
-    val scorer = lqw.scorer(context)
-    val iter = scorer.iterator()
+class LuceneMissingScore(val q: String): QueryEvalNode, LeafEvalNode() {
+    override fun score(env: ScoringEnv): Double = error("Don't ask for positions if count is zero!")
+    override fun count(env: ScoringEnv) = 0
+    override fun matches(env: ScoringEnv) = false
+    override fun explain(env: ScoringEnv) = Explanation.match(0.0f, "MissingTerm-$q")
+    override fun estimateDF() = 0L
+}
 
+class LuceneWeightNode(val lqw: Weight, val scorer: Scorer, val iter: DocIdSetIterator, val context: LeafReaderContext): QueryEvalNode, LeafEvalNode() {
     override fun score(env: ScoringEnv): Double = scorer.score().toDouble()
     override fun count(env: ScoringEnv): Int = scorer.freq()
 

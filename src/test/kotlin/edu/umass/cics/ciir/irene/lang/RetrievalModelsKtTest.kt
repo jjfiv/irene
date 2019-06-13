@@ -2,6 +2,7 @@ package edu.umass.cics.ciir.irene.lang
 
 import edu.umass.cics.ciir.irene.IreneIndexer
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
+import org.apache.lucene.search.ScoreDoc
 import org.junit.Assert
 import org.junit.Test
 
@@ -36,6 +37,10 @@ class RetrievalModelsKtTest {
             val results = reader.search(q, 100)
             Assert.assertEquals(3L, results.totalHits)
             Assert.assertEquals(3, results.scoreDocs.size)
+
+            val qMiss = LuceneExpr("+z a b")
+            val noResults = reader.search(qMiss, 4)
+            Assert.assertEquals(emptyList<ScoreDoc>(), noResults.scoreDocs.toList())
         }
     }
 
