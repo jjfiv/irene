@@ -193,6 +193,12 @@ class LDocBuilder(val params: IndexParams) {
         }
         fields[field] = keep
     }
+    fun setStoredString(field: String, data: String) {
+        if (fields.containsKey(field)) {
+            error("Already specified $field for this document $fields.")
+        }
+        fields[field] = listOf(StoredField(field, data))
+    }
     fun setTimeField(field: String, ldt: LocalDateTime?, stored: Boolean=true) {
         if(ldt == null) return
         // Default to UTC if given a local-date-time.
