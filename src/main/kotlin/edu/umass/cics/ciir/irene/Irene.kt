@@ -239,6 +239,7 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
                 ?: error("No such field ${term.field()}.")
     }
     override fun getStats(expr: QExpr): CountStats {
+        expr.applyEnvironment(this.env)
         if (expr is TextExpr) {
             return getStats(expr.text, expr.statsField())
         }
