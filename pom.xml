@@ -153,7 +153,6 @@
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <configuration>
                     <jvmTarget>1.8</jvmTarget>
-                    <experimentalCoroutines>enable</experimentalCoroutines>
                 </configuration>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <version>${kotlin.version}</version>

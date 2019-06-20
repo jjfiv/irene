@@ -121,7 +121,8 @@ interface IIndex : Closeable {
     fun getStats(expr: QExpr): CountStats
     fun getStats(text: String, field: String = defaultField): CountStats = getStats(Term(field, text))
     fun getStats(term: Term): CountStats
-    fun tokenize(text: String, field: String=defaultField) = tokenizer.tokenize(text, field)
+    fun tokenize(text: String) = tokenize(text, defaultField)
+    fun tokenize(text: String, field: String) = tokenizer.tokenize(text, field)
     fun toTextExprs(text: String, field: String = defaultField): List<TextExpr> = tokenize(text, field).map { TextExpr(it, field) }
     fun search(q: QExpr, n: Int): TopDocs
     fun documentById(id: String): Int?

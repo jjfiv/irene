@@ -367,7 +367,6 @@ data class AbsoluteDiscountingQLExpr(override var child: QExpr, var delta: Doubl
     }
 }
 data class BM25Expr(override var child: QExpr, var b: Double? = null, var k: Double? = null, var stats: CountStats? = null, var extractedIDF: Boolean = false): SingleChildExpr() {
-
     override fun applyEnvironment(env: RREnv) {
         if (b == null) b = env.defaultBM25b
         if (k == null) k = env.defaultBM25k
