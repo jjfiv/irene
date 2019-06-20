@@ -7,3 +7,4 @@
 *.irene
 *.jl
 dependency-reduced-pom.xml
+/galago/target

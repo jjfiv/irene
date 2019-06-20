@@ -6,12 +6,12 @@
 
     <groupId>edu.umass.cics.ciir</groupId>
     <artifactId>irene</artifactId>
-    <version>0.4</version>
+    <version>0.5-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <javaVersion>1.8</javaVersion>
-        <galagoVersion>3.13</galagoVersion>
+        <galagoVersion>3.16</galagoVersion>
         <luceneVersion>7.1.0</luceneVersion>
         <jacksonVersion>2.9.9</jacksonVersion>
         <mainClass>edu.umass.cics.ciir.irene.MainKt</mainClass>
