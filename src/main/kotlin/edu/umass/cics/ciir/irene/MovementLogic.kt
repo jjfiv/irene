@@ -28,6 +28,7 @@ fun createOptimizedMovementExpr(q: QExpr): QExpr = when(q) {
     // NOTE: Galago semantics, only look at cond. This is not an AND like you might think. (that's MustExpr)
     is RequireExpr -> createOptimizedMovementExpr(q.cond)
 
+    is DenseFloatField,
     is DenseLongField -> AlwaysMatchLeaf
 
     // Don't translate these subtrees, as their names give away their behavior! No point in instantiating them.

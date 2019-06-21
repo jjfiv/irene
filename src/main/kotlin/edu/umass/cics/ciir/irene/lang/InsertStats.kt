@@ -34,6 +34,7 @@ fun insertStats(env: RREnv, input: QExpr) = qmap(input) { q ->
         is UnorderedWindowCeilingExpr,
         is UnorderedWindowExpr,
         is WeightExpr,
+        is DenseFloatField,
         is DenseLongField,
         is LongLTE,
         is WhitelistMatchExpr -> q

@@ -34,7 +34,7 @@ data class LuceneLongDocValues(val iter: NumericDocValues, val missing: Long): L
         }
         return false
     }
-    override fun explain(env: ScoringEnv)= Explanation.match(score(env).toFloat(), "LongDocValues(${value(env)}")
+    override fun explain(env: ScoringEnv)= Explanation.match(score(env).toFloat(), "LongDocValues(${value(env)})")
     override fun estimateDF(): Long = iter.cost()
     override fun value(env: ScoringEnv): Long {
         if (matches(env)) {
@@ -42,7 +42,21 @@ data class LuceneLongDocValues(val iter: NumericDocValues, val missing: Long): L
         }
         return missing
     }
+}
 
+data class LuceneFloatDocValues(override val child: LuceneLongDocValues, val missing: Double): SingleChildEval<LuceneLongDocValues>(), QueryEvalNode {
+    override fun score(env: ScoringEnv): Double {
+        if (child.matches(env)) {
+            return Float.fromBits(child.value(env).toInt()).toDouble()
+        }
+        return missing
+    }
+
+    override fun count(env: ScoringEnv): Int {
+        return score(env).toInt()
+    }
+
+    override fun explain(env: ScoringEnv): Explanation = Explanation.match(score(env).toFloat(), "FloatDocValues", listOf(child.explain(env)))
 }
 
 data class LuceneDocLengths(val field: String, val lengths: NumericDocValues, val info: ComputedStats): CountEvalNode, LeafEvalNode() {

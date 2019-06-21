@@ -145,7 +145,7 @@ data class LTRDocScoringEnv(override val ltr: ILTRDoc) : ScoringEnv(ltr.name.has
 class LTREvalSetupContext(override val env: RREnv) : EvalSetupContext {
     override fun luceneIter(query: LuceneQuery): DocIdSetIterator = TODO("lucene-ltr")
     override fun setupLuceneRaw(q: LuceneQuery): QueryEvalNode? = TODO("lucene-ltr")
-    override fun denseLongField(expr: DenseLongField): QueryEvalNode = TODO("lucene-ltr")
+    override fun denseLongField(name: String, missing: Long): QueryEvalNode = TODO("lucene-ltr")
     val termCache = HashMap<Term, LTRDocTerm>()
     val lengthsCache = HashMap<String, LTRDocLength>()
     override fun create(term: Term, needed: DataNeeded): QueryEvalNode = termCache.computeIfAbsent(term, {

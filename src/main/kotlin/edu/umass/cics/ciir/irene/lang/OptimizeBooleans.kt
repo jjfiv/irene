@@ -168,6 +168,7 @@ fun simplifyBools(input: QExpr, ctx: FixedPointBooleanSimplification): QExpr {
             is LengthsExpr,
             is LuceneExpr,
             is DenseLongField,
+            is DenseFloatField,
             NeverMatchLeaf,
             AlwaysMatchLeaf,
             is TextExpr -> q

@@ -24,7 +24,7 @@ interface EvalSetupContext {
     fun createLengths(field: String): QueryEvalNode
     fun numDocs(): Int
     fun selectRelativeDocIds(ids: List<Int>): IntList
-    fun denseLongField(expr: DenseLongField): QueryEvalNode
+    fun denseLongField(name: String, missing: Long): QueryEvalNode
     fun setupLuceneRaw(q: LuceneQuery): QueryEvalNode?
     fun luceneIter(query: LuceneQuery): DocIdSetIterator
 }
@@ -63,11 +63,11 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
         lengths.nextDoc()
         return lengths
     }
-    override fun denseLongField(expr: DenseLongField): LongEvalNode {
-        val iter = lucene_try { context.reader().getNumericDocValues(expr.name) } ?: error("Couldn't find $expr")
+    override fun denseLongField(name: String, missing: Long): LongEvalNode {
+        val iter = lucene_try { context.reader().getNumericDocValues(name) } ?: error("Couldn't find NumericDocValues=$name")
         // Lucene requires that we call nextDoc() to begin reading any DocIdSetIterator
         iter.nextDoc()
-        return LuceneLongDocValues(iter, expr.missing)
+        return LuceneLongDocValues(iter, missing)
     }
 
     override fun create(term: Term, needed: DataNeeded): QueryEvalNode {

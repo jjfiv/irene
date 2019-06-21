@@ -371,7 +371,7 @@ internal abstract class ScorerEval : QueryEvalNode {
     override fun matches(env: ScoringEnv): Boolean = child.matches(env)
 }
 
-internal abstract class SingleChildEval<out T : QueryEvalNode> : QueryEvalNode {
+abstract class SingleChildEval<out T : QueryEvalNode> : QueryEvalNode {
     abstract val child: T
     override val children: List<QueryEvalNode> get() = listOf(child)
     override fun estimateDF(): Long = child.estimateDF()

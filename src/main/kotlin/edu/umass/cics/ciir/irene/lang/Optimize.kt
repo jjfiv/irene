@@ -138,6 +138,7 @@ fun combineWeights(input: QExpr, ctx: CombineWeightsFixedPoint): QExpr = qmap(in
         is LengthsExpr,
         is LuceneExpr,
         is DenseLongField,
+        is DenseFloatField,
         NeverMatchLeaf,
         AlwaysMatchLeaf,
         is TextExpr -> q
@@ -181,7 +182,7 @@ fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
             q.needed = childNeeds
             childNeeds
         }
-        is DenseLongField, is LengthsExpr -> return
+        is DenseFloatField, is DenseLongField, is LengthsExpr -> return
         is AndExpr, is OrExpr -> DataNeeded.DOCS
         // Pass through whatever at this point.
         is LongLTE,
@@ -260,6 +261,7 @@ fun reduceSingleChildren(q: QExpr): QExpr = when(q) {
     is LengthsExpr,
     is TextExpr,
     is DenseLongField,
+    is DenseFloatField,
     is LuceneExpr,
     is WeightExpr,
     is CountEqualsExpr,

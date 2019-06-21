@@ -43,9 +43,10 @@ fun main(args: Array<String>) {
         create()
         withPath(File(argp.get("index", TrecNewsWikiIndex)))
     }
-    val msg = CountingDebouncer(TrecNewsWikiCount)
 
     val index = IreneIndexer(params).use { writer ->
+        val msg = CountingDebouncer(TrecNewsWikiCount)
+
         DeserializeData.iterAnnotations(StreamCreator.openInputStream(input)).forEach { page ->
             msg.incr()?.let {
                 println("Indexing TREC News Wikipedia: ${it}")

@@ -15,7 +15,8 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
         println(q)
         throw e
     }
-    is DenseLongField -> ctx.denseLongField(q)
+    is DenseLongField -> ctx.denseLongField(q.name, q.missing)
+    is DenseFloatField -> LuceneFloatDocValues(ctx.denseLongField(q.name, 0) as LuceneLongDocValues, q.missing.toDouble())
     is LuceneExpr -> {
         q.applyEnvironment(ctx.env)
         ctx.setupLuceneRaw(q.query!!) ?: error("Unsupported LuceneExpr")
