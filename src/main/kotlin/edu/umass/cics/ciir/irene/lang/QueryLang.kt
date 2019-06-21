@@ -39,6 +39,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         is OrderedWindowExpr -> mapper(OrderedWindowExpr(q.children.map { qmap(it, mapper) }, q.step))
         is UnorderedWindowExpr -> mapper(UnorderedWindowExpr(q.children.map { qmap(it, mapper) }, q.width))
         is ProxExpr -> mapper(ProxExpr(q.children.map { qmap(it, mapper) }, q.width))
+        is LogValueExpr -> mapper(LogValueExpr(qmap(q.child, mapper)))
         is WeightExpr -> mapper(WeightExpr(qmap(q.child, mapper), q.weight))
         is CountEqualsExpr -> mapper(CountEqualsExpr(qmap(q.child, mapper), q.target))
         is DirQLExpr -> mapper(DirQLExpr(qmap(q.child, mapper), q.mu, q.stats))
@@ -353,6 +354,9 @@ data class WeightExpr(override var child: QExpr, var weight: Double = 1.0) : Sin
 }
 
 data class CountEqualsExpr(override var child: QExpr, var target: Int): SingleChildExpr() {
+}
+
+data class LogValueExpr(override var child: QExpr): SingleChildExpr() {
 }
 
 data class DirQLExpr(override var child: QExpr, var mu: Double? = null, var stats: CountStats? = null): SingleChildExpr() {

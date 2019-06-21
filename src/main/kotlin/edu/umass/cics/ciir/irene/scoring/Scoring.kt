@@ -8,6 +8,7 @@ import edu.umass.cics.ciir.irene.utils.Fraction
 import gnu.trove.set.hash.TIntHashSet
 import org.apache.lucene.search.DocIdSetIterator
 import org.apache.lucene.search.Explanation
+import javax.management.QueryEval
 
 open class ScoringEnv(var doc: Int=-1) {
     open val ltr: ILTRDoc get() = error("No LTR document available.")
@@ -386,6 +387,16 @@ internal class EvalLongLTE(override val child: LongEvalNode, val threshold: Long
         }
         return Explanation.noMatch("EvalLongLTE: ${child.value(env)} > ${threshold}")
     }
+}
+
+internal class LogValueEval(override val child: QueryEvalNode): SingleChildEval<QueryEvalNode>() {
+    override fun score(env: ScoringEnv): Double = Math.log(child.score(env))
+    override fun count(env: ScoringEnv): Int = error("log($child).count()")
+    override fun explain(env: ScoringEnv): Explanation {
+        val orig = child.score(env)
+        return Explanation.match(score(env).toFloat(), "Log@${env.doc} = log($orig)", child.explain(env))
+    }
+
 }
 
 internal class WeightedEval(override val child: QueryEvalNode, val weight: Double): SingleChildEval<QueryEvalNode>() {

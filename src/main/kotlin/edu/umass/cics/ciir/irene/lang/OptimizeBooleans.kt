@@ -203,6 +203,7 @@ fun simplifyBools(input: QExpr, ctx: FixedPointBooleanSimplification): QExpr {
             is UnorderedWindowCeilingExpr,
             is UnorderedWindowExpr,
             is WeightExpr,
+            is LogValueExpr,
             is WhitelistMatchExpr,
             is LongLTE,
             is MultiExpr -> q

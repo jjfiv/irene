@@ -42,6 +42,7 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
     }
     is MultExpr -> TODO()
     is MaxExpr -> MaxEval(q.children.map { exprToEval(it, ctx) })
+    is LogValueExpr -> LogValueEval(exprToEval(q.child, ctx))
     is WeightExpr -> WeightedEval(exprToEval(q.child, ctx), q.weight)
     is LinearQLExpr -> LinearSmoothingEval(
             exprToEval(q.child, ctx),

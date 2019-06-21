@@ -66,7 +66,7 @@ fun main(args: Array<String>) {
                 altNames.addAll(page.pageMetadata.inlinkAnchors)
                 altNames.addAll(page.pageMetadata.redirectNames)
 
-                setBoolField("listOf", page.pageName.startsWith("List"), stored=false)
+                setBoolField("listOf", page.pageName.startsWith("List of"), stored=false)
                 setDenseFloatField("pageRank", pageRanks.get(page.pageId) ?: minPageRank, true)
                 setTextField("names", altNames.joinToString(separator="\t"))
                 setTextField("categories", page.pageMetadata.categoryNames.joinToString(separator="\t"))

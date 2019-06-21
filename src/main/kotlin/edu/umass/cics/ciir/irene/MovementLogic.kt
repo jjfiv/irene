@@ -22,7 +22,7 @@ fun createOptimizedMovementExpr(q: QExpr): QExpr = when(q) {
     is AndExpr, is ProxExpr, is UnorderedWindowCeilingExpr, is SmallerCountExpr, is OrderedWindowExpr, is UnorderedWindowExpr -> AndExpr(q.children.map { createOptimizedMovementExpr(it) })
 
     // Transformers are just pass-through movement.
-    is LinearQLExpr,
+    is LinearQLExpr, is LogValueExpr,
     is CountToScoreExpr, is BoolToScoreExpr, is CountToBoolExpr, is AbsoluteDiscountingQLExpr, is BM25Expr, is WeightExpr, is DirQLExpr -> createOptimizedMovementExpr(q.trySingleChild)
 
     // NOTE: Galago semantics, only look at cond. This is not an AND like you might think. (that's MustExpr)

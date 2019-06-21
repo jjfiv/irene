@@ -116,6 +116,7 @@ internal fun galagoToIrene(expr: GExpr): QExpr {
                 }
             }
         }
+        "log" -> LogValueExpr(transformOnlyOneChild(children))
         "scale" -> WeightExpr(transformOnlyOneChild(children), np.get("default", 1.0))
         "syn", "synonym" -> SynonymExpr(children.map { galagoToIrene(it) })
         "all", "band" -> AndExpr(children.map { galagoToIrene(it) })

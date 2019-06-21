@@ -64,6 +64,7 @@ private fun toGalagoRecursive(q : QExpr): GExpr {
         is UnorderedWindowExpr -> GExpr("uw", children(q)).apply {
             setf("default", q.width)
         }
+        is LogValueExpr -> GExpr("log", toGalagoRecursive(q.child))
         is WeightExpr -> GExpr("combine", toGalagoRecursive(q.child)).apply {
             setf("norm", false)
             setf("0", q.weight)
