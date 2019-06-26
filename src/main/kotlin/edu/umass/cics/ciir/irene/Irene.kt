@@ -6,6 +6,7 @@ import edu.umass.cics.ciir.irene.indexing.LDocBuilder
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.scoring.IreneQueryModel
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
+import edu.umass.cics.ciir.irene.utils.ReservoirSampler
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.benchmark.byTask.feeds.DocData
@@ -14,12 +15,14 @@ import org.apache.lucene.benchmark.byTask.feeds.TrecContentSource
 import org.apache.lucene.index.*
 import org.apache.lucene.search.*
 import org.lemurproject.galago.utility.Parameters
+import org.roaringbitmap.RoaringBitmap
 import java.io.Closeable
 import java.io.File
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.ForkJoinTask
+import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.atomic.AtomicLong
 
 /**
@@ -46,7 +49,7 @@ class IndexParams {
     var idFieldName = "id"
 
     fun withAnalyzer(field: String, analyzer: Analyzer): IndexParams {
-        perFieldAnalyzers.put(field, analyzer)
+        perFieldAnalyzers[field] = analyzer
         return this
     }
     fun inMemory(): IndexParams {
@@ -84,7 +87,7 @@ class IreneIndexer(val params: IndexParams) : Closeable {
         }
     }
     val processed = AtomicLong(0)
-    val dest = params.directory!!
+    private val dest = params.directory!!
     val writer = IndexWriter(dest.use(), IndexWriterConfig(params.analyzer).apply {
         similarity = TrueLengthNorm()
         openMode = params.openMode
@@ -139,6 +142,11 @@ interface IIndex : Closeable {
         return LTRDoc.create(id, fjson, fields, tokenizer)
     }
     fun count(q: QExpr): Int
+    fun matches(q: QExpr): RoaringBitmap
+    fun sample(q: QExpr, n: Int, rand: Random): ReservoirSampler<Int>
+    fun sample(q: QExpr, n: Int): ReservoirSampler<Int> {
+        return this.sample(q, n, ThreadLocalRandom.current())
+    }
 }
 class EmptyIndex(override val tokenizer: GenericTokenizer = WhitespaceTokenizer()) : IIndex {
     override val defaultField: String = "missing"
@@ -155,13 +163,15 @@ class EmptyIndex(override val tokenizer: GenericTokenizer = WhitespaceTokenizer(
     }
     override fun docAsParameters(doc: Int): Parameters? = null
     override fun count(q: QExpr): Int = 0
+    override fun matches(q: QExpr): RoaringBitmap = RoaringBitmap()
+    override fun sample(q: QExpr, n: Int, rand: Random): ReservoirSampler<Int> = ReservoirSampler(n, rand)
 }
 
 class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
     constructor(params: IndexParams) : this(params.directory!!, params)
-    val jobPool = ForkJoinPool.commonPool()
+    val jobPool: ForkJoinPool = ForkJoinPool.commonPool()
     val idFieldName = params.idFieldName
-    val reader = DirectoryReader.open(io.open().use())
+    val reader: DirectoryReader = DirectoryReader.open(io.open().use())
     val searcher = IndexSearcher(reader, jobPool)
     val analyzer = params.analyzer
     val env = IreneQueryLanguage(this)
@@ -183,9 +193,9 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
 
     fun getField(doc: Int, name: String): IndexableField? = searcher.doc(doc, setOf(name))?.getField(name)
     fun getDocumentName(doc: Int): String? {
-        val resp = idToNameCache.get(doc, {
+        val resp = idToNameCache.get(doc) {
             getField(doc, idFieldName)?.stringValue() ?: ""
-        }) ?: return null
+        } ?: return null
         if (resp.isBlank()) return null
         return resp
     }
@@ -215,7 +225,7 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
         }
     }
     override fun documentById(id: String): Int? {
-        val response = nameToIdCache.get(id, { missing -> documentByIdInternal(missing) ?: -1 })
+        val response = nameToIdCache.get(id) { missing -> documentByIdInternal(missing) ?: -1 }
         if (response == null || response < 0) return null
         return response
     }
@@ -228,9 +238,9 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
     fun getAverageDL(field: String): Double = fieldStats(field)?.avgDL() ?: error("No such field $field.")
 
     override fun fieldStats(field: String): CountStats? {
-        return fieldStatsCache.computeIfAbsent(field, {
+        return fieldStatsCache.computeIfAbsent(field) {
             CalculateStatistics.fieldStats(searcher, field)
-        })
+        }
     }
 
     override fun getStats(term: Term): CountStats {
@@ -250,10 +260,10 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
     fun prepare(expr: QExpr): IreneQueryModel = IreneQueryModel(this, this.env, expr)
 
     private fun getExprStats(expr: QExpr): ForkJoinTask<CountStats>? {
-        return exprStatsCache.get(expr, { missing ->
+        return exprStatsCache.get(expr) { missing ->
             val func: ()->CountStats = {CalculateStatistics.computeQueryStats(searcher, prepare(missing), this::fieldStats)}
             jobPool.submit(func)
-        })
+        }
     }
 
     override fun search(q: QExpr, n: Int): TopDocs {
@@ -263,6 +273,13 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
     override fun count(q: QExpr): Int {
         val lq = prepare(q)
         return searcher.count(lq)
+    }
+    override fun matches(q: QExpr): RoaringBitmap {
+        return searcher.search(prepare(q), BitmapCollectorManager())
+    }
+
+    override fun sample(q: QExpr, n: Int, rand: Random): ReservoirSampler<Int> {
+        return searcher.search(prepare(q), SamplingCollectorManager(n, rand))
     }
 
     fun pool(qs: Map<String, QExpr>, depth: Int): Map<String, TopDocs> {

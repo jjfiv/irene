@@ -4,10 +4,15 @@ import edu.umass.cics.ciir.irene.lang.MultiExpr
 import edu.umass.cics.ciir.irene.scoring.IreneQueryScorer
 import edu.umass.cics.ciir.irene.scoring.MultiEvalNode
 import edu.umass.cics.ciir.irene.scoring.ScoringEnv
+import edu.umass.cics.ciir.irene.utils.ReservoirSampler
 import edu.umass.cics.ciir.irene.utils.ScoringHeap
 import edu.umass.cics.ciir.irene.utils.WeightedForHeap
 import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.*
+import org.roaringbitmap.RoaringBitmap
+import java.util.*
+import java.util.concurrent.ThreadLocalRandom
+import kotlin.collections.ArrayList
 
 /**
  * @author jfoley
@@ -56,6 +61,46 @@ class TopKCollectorManager(val requested: Int) : CollectorManager<TopKCollectorM
     }
 
     override fun newCollector() = TopKCollector()
+}
+
+class BitmapCollector : Collector {
+    val results = RoaringBitmap()
+    override fun needsScores(): Boolean = false
+    override fun getLeafCollector(context: LeafReaderContext): LeafCollector {
+        val docBase = context.docBase
+        return object : LeafCollector {
+            override fun setScorer(scorer: Scorer?) {}
+            override fun collect(doc: Int) {
+                results.add(doc + docBase)
+            }
+        }
+    }
+}
+
+// This class collects all the matching results from a query.
+class BitmapCollectorManager: CollectorManager<BitmapCollector, RoaringBitmap> {
+    override fun newCollector(): BitmapCollector = BitmapCollector()
+    override fun reduce(collectors: Collection<BitmapCollector>): RoaringBitmap {
+        val output = RoaringBitmap()
+        for (c in collectors) {
+            output.or(c.results)
+        }
+        return output
+    }
+}
+
+// This class samples up to requested results from a query.
+class SamplingCollectorManager(val requested: Int, val rand: Random): CollectorManager<BitmapCollector, ReservoirSampler<Int>> {
+    override fun newCollector(): BitmapCollector = BitmapCollector()
+    override fun reduce(collectors: Collection<BitmapCollector>): ReservoirSampler<Int> {
+        val output = ReservoirSampler<Int>(requested, rand)
+        for (c in collectors) {
+            c.results.forEach { doc ->
+                output.add(doc)
+            }
+        }
+        return output
+    }
 }
 
 class PoolingCollectorManager(val mq: MultiExpr, val poolSize: Int): CollectorManager<PoolingCollectorManager.PoolingCollector, Map<String, TopDocs>> {
