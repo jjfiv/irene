@@ -149,14 +149,9 @@ val skipTheseKickers = setOf("Opinions", "Letters to the Editor", "Opinion", "Th
 fun executeBackgroundLinkingQuery(q: TrecNewsBGLinkQuery, index: IreneIndex, docNo: Int, doc: WapoDocument, query: QExpr): QueryResults {
     val time = doc.published_date ?: 0L
     assert(time >= 0L)
-
-    val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
-    val countBefore = index.count(publishedBeforeExpr)
-    val finalExpr = MustExpr(publishedBeforeExpr, query).deepCopy()
-
     println("${q.qid}, ${doc.title}\n\t${doc.url}\n\t$countBefore")
 
-    val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth*2) }
+    val (scoring_time, results) = timed { index.search(query.deepCopy(), BackgroundLinkingDepth*2) }
     println("Scoring time: $scoring_time")
 
     val titles = hashMapOf<Int, String>()
