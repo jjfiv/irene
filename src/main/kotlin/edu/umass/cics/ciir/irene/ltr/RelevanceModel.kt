@@ -104,6 +104,13 @@ class BagOfWords(val counts: TObjectIntHashMap<String>) : LanguageModel<String> 
 
 }
 
+data class WeightedItem<T>(val score: Double, val item: T) : Comparable<WeightedItem<T>> {
+    // Natural order: biggest first.
+    override fun compareTo(other: WeightedItem<T>): Int {
+        return -java.lang.Double.compare(score, other.score)
+    }
+}
+
 data class WeightedTerm(val score: Double, val term: String, val field: String = "") : Comparable<WeightedTerm> {
     // Natural order: biggest first.
     override fun compareTo(other: WeightedTerm): Int {
@@ -118,6 +125,11 @@ data class WeightedTerm(val score: Double, val term: String, val field: String =
 fun List<WeightedTerm>.normalized(): List<WeightedTerm> {
     val total = this.sumByDouble { it.score }
     return this.map { WeightedTerm(it.score / total, it.term) }
+}
+
+fun <T> List<WeightedItem<T>>.normalizedItems(): List<WeightedItem<T>> {
+    val total = this.sumByDouble { it.score }
+    return this.map { WeightedItem(it.score / total, it.item) }
 }
 
 data class RelevanceModel(val weights: TObjectDoubleHashMap<String>, val sourceField: String?) : LanguageModel<String> {

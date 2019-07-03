@@ -407,13 +407,13 @@ internal class WeightedEval(override val child: QueryEvalNode, val weight: Doubl
     }
 
     override fun score(env: ScoringEnv): Double = weight * child.score(env)
-    override fun count(env: ScoringEnv): Int = error("Weighted($weight).count()")
+    override fun count(env: ScoringEnv): Int = error("WeightedItem($weight).count()")
     override fun explain(env: ScoringEnv): Explanation {
         val orig = child.score(env)
         return if (child.matches(env)) {
-            Explanation.match(score(env).toFloat(), "Weighted@${env.doc} = $weight * $orig", child.explain(env))
+            Explanation.match(score(env).toFloat(), "WeightedItem@${env.doc} = $weight * $orig", child.explain(env))
         } else {
-            Explanation.noMatch("Weighted.Miss@${env.doc} (${weight*orig} = $weight * $orig)", child.explain(env))
+            Explanation.noMatch("WeightedItem.Miss@${env.doc} (${weight*orig} = $weight * $orig)", child.explain(env))
         }
     }
 }
