@@ -83,8 +83,10 @@ fun documentVectorToQuery(tokens: List<String>, numTerms: Int,
                           targetField: String? = null,
                           windowDetectionSize: Int = 8,
                           scorer: (QExpr) -> QExpr = { DirQLExpr(it) },
-                          proxToExpr: (List<QExpr>) -> QExpr = {SmallerCountExpr(it)},
-                          unigramWeight: Double = 0.8): QExpr {
+                          proxToExpr: (List<QExpr>) -> QExpr = {OrderedWindowExpr(it)},
+                          unigramWeight: Double = 0.8,
+                          unigrams: Boolean = false
+                      ): QExpr {
     val counts = TObjectIntHashMap<String>()
     val length = tokens.size.toDouble()
     for (t in tokens) {
@@ -130,28 +132,36 @@ fun documentVectorToQuery(tokens: List<String>, numTerms: Int,
 
     val bigramWeights = arrayListOf<Double>()
     val bigramNodes = mins.keys.map { (lhs, rhs) ->
-        val importance = rm.weights[lhs] * rm.weights[rhs]
+        val importance = 1.0; //rm.weights[lhs] * rm.weights[rhs]
         bigramWeights.add(importance)
         scorer(proxToExpr(listOf(TextExpr(lhs), TextExpr(rhs)))).weighted(importance)
     }
     val uww = CombineExpr(bigramNodes, bigramWeights.normalize())
 
-    if (unigramWeight == 0.0) {
-        return uww
-    } else if (unigramWeight == 1.0) {
+    if (unigrams) {
+        println("Just unigrams!")
         return rm.toQExpr(numTerms, scorer=scorer)
+    } else {
+        println("Not unigrams! ${mins.keys.take(10)} ${bigramNodes.size} ${bigramWeights.take(10)}")
+        return SumExpr(rm.toQExpr(numTerms, scorer=scorer).weighted(unigramWeight), uww.weighted(1.0-unigramWeight))
     }
-    return SumExpr(rm.toQExpr(numTerms, scorer=scorer).weighted(unigramWeight), uww.weighted(1.0-unigramWeight))
 }
 
 val skipTheseKickers = setOf("Opinions", "Letters to the Editor", "Opinion", "The Post's View")
 
-fun executeBackgroundLinkingQuery(q: TrecNewsBGLinkQuery, index: IreneIndex, docNo: Int, doc: WapoDocument, query: QExpr): QueryResults {
+fun executeBackgroundLinkingQuery(q: TrecNewsBGLinkQuery, index: IreneIndex, docNo: Int, doc: WapoDocument, query: QExpr, includeFuture: Boolean = true): QueryResults {
     val time = doc.published_date ?: 0L
     assert(time >= 0L)
-    println("${q.qid}, ${doc.title}\n\t${doc.url}\n\t$countBefore")
+    println("${q.qid}, ${doc.title}\n\t${doc.url}")
 
-    val (scoring_time, results) = timed { index.search(query.deepCopy(), BackgroundLinkingDepth*2) }
+    val publishedBeforeExpr = LongLTE(DenseLongField("published_date"), time)
+    val finalExpr = if (includeFuture) {
+      query.deepCopy()
+    } else {
+      MustExpr(publishedBeforeExpr, query).deepCopy()
+    }
+
+    val (scoring_time, results) = timed { index.search(finalExpr, BackgroundLinkingDepth*2) }
     println("Scoring time: $scoring_time")
 
     val titles = hashMapOf<Int, String>()
@@ -196,14 +206,18 @@ fun executeBackgroundLinkingQuery(q: TrecNewsBGLinkQuery, index: IreneIndex, doc
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args)
     val NumTerms = argp.get("numFBTerms", 50)
+    val model = argp.get("model", "rdm")
+    val includeFuture = argp.get("includeFuture", "yes")
     val indexPath = File(argp.get("index", defaultWapoIndexPath))
     if (!indexPath.exists()) error("--index=$indexPath does not exist yet.")
     val queries = loadBGLinkQueries(argp.get("queries", "${System.getenv("HOME")}/code/queries/trec_news/newsir18-background-linking-topics.v2.xml"))
 
 
-    val cbrdmOutput = File("umass_cbrdm.news.bg.trecrun.gz").smartPrinter()
-    val rmOutput = File("umass_rm.news.bg.trecrun.gz").smartPrinter()
-    val rdmOutput = File("umass_rdm.news.bg.trecrun.gz").smartPrinter()
+    val cbrdmOutput = File("umass_cbrdm.news.future_$includeFuture.bg.trecrun.gz").smartPrinter()
+    val rmOutput = File("umass_rm.news.future_$includeFuture.bg.trecrun.gz").smartPrinter()
+    val rdmOutput = File("umass_rdm.news.future_$includeFuture.bg.trecrun.gz").smartPrinter()
+
+    val includeFutureBool = includeFuture == "yes"
 
     IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
         index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
@@ -216,27 +230,31 @@ fun main(args: Array<String>) {
             val doc = fromLucene(index, lDoc)
             val tokens = index.tokenize(doc.body)
 
-            synchronized(index.env) {
-                index.env.estimateStats = "min"
-                val scorer: (QExpr)->QExpr = {q -> BM25Expr(q)}
+            when(model) {
+              "cbrdm" -> synchronized(index.env) {
+                  index.env.estimateStats = "min"
+                  val scorer: (QExpr)->QExpr = {q -> BM25Expr(q)}
 
-                val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField, scorer = scorer)
-                val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr)
-                qres.outputTrecrun(cbrdmOutput, "umass_cbrdm")
-            }
+                  val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField, scorer = scorer)
+                  val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr, includeFuture=includeFutureBool)
+                  qres.outputTrecrun(cbrdmOutput, "umass_cbrdm")
+              }
 
-            synchronized(index.env) {
-                index.env.estimateStats = null
-                val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField, unigramWeight = 1.0)
-                val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr)
-                qres.outputTrecrun(rmOutput, "umass_rm")
-            }
+              "rm" -> synchronized(index.env) {
+                  index.env.estimateStats = null
+                  val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField, unigramWeight = 1.0, unigrams=true)
+                  val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr, includeFuture=includeFutureBool)
+                  qres.outputTrecrun(rmOutput, "umass_rm")
+              }
 
-            synchronized(index.env) {
-                index.env.estimateStats = null
-                val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField)
-                val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr)
-                qres.outputTrecrun(rdmOutput, "umass_rdm")
+              "rdm" -> synchronized(index.env) {
+                  index.env.estimateStats = null
+                  val rmExpr = documentVectorToQuery(tokens, NumTerms, targetField = index.defaultField)
+                  val qres = executeBackgroundLinkingQuery(q, index, docNo, doc, rmExpr, includeFuture=includeFutureBool)
+                  qres.outputTrecrun(rdmOutput, "umass_rdm")
+              }
+
+              else -> TODO("Model=$model")
             }
         }
     }
