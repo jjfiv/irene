@@ -74,6 +74,10 @@
                     <groupId>edu.stanford.nlp</groupId>
                     <artifactId>stanford-corenlp</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>info.bliki.wiki</groupId>
+                    <artifactId>bliki-core</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
