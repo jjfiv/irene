@@ -4,15 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
+import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.inqueryStop
-import edu.umass.cics.ciir.irene.lang.BM25Expr
-import edu.umass.cics.ciir.irene.lang.QExpr
-import edu.umass.cics.ciir.irene.lang.QueryLikelihood
-import edu.umass.cics.ciir.irene.lang.SequentialDependenceModel
+import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel
 import edu.umass.cics.ciir.irene.trec2018.defaultWapoIndexPath
 import edu.umass.cics.ciir.irene.utils.computeEntropy
+import edu.umass.cics.ciir.irene.utils.smartDoLines
 import edu.umass.cics.ciir.irene.utils.smartPrint
 import edu.umass.cics.ciir.irene.utils.timed
 import gnu.trove.map.hash.TObjectDoubleHashMap
@@ -48,8 +47,43 @@ fun main(args: Array<String>) {
 
     val stopwords = inqueryStop
 
-    File("trec_news.ltr.v3.jsonl.gz").smartPrint { output ->
+    File("trec_news.ltr.v4.jsonl.gz").smartPrint { output ->
         IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
+            val makeBM25Scorer: (QExpr)->QExpr = { BM25Expr(it) }
+
+            val entries = hashMapOf<String, Map<String, List<QExpr>>>()
+            File("/home/jfoley/code/fastrank/trec-2019/keywords/keywords_wapo_2018.jsonl").smartDoLines { line ->
+                val entry = Parameters.parseStringOrDie(line);
+                val docid = entry.getStr("docid")
+                val features = entry.getMap("features")
+                val by_name = HashMap<String, List<QExpr>>()
+                features.keys.map { fname ->
+                    if (features.isList(fname)) {
+                        val tokens = features.getAsList(fname, String::class.java)
+                        tokens.map { SequentialDependenceModel(index.tokenize(it), makeScorer=makeBM25Scorer) }
+                    } else {
+                        val weights = features.getMap(fname)
+                        by_name.put(fname,
+                            weights.keys.flatMap {
+                                val terms = index.tokenize(it)
+                                if (terms.isNotEmpty()) {
+                                    listOf(SequentialDependenceModel(terms, makeScorer = makeBM25Scorer).weighted(weights.getAsDouble(it)))
+                                } else {
+                                    listOf()
+                                }
+                            })
+                    }
+                }
+                entries.put(docid, by_name)
+            }
+
+            for (q in queries) {
+                println(q.qid)
+                if (q.docid !in entries) {
+                    error("Missing ${q.docid} for ${q.qid}")
+                }
+            }
+
             index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
             index.env.optimizeDirLog = false
             index.env.optimizeBM25 = true
@@ -109,6 +143,7 @@ fun main(args: Array<String>) {
 
             for (q in queries) {
                 println(q.qid)
+                val keywords = entries[q.docid] ?: error("Missing keywords for ${q.qid}")
                 val docNo = index.documentById(q.docid) ?: error("Missing document for ${q.qid}")
                 val lDoc = index.document(docNo) ?: error("Missing document fields for ${q.qid} internally: $docNo")
                 val doc = fromLucene(index, lDoc)
@@ -169,6 +204,10 @@ fun main(args: Array<String>) {
                     sdoc.features["bm25-rm-10-rev"] = queryLTRDoc.eval(ltrEnv, tRM.toQExpr(10, scorer = { BM25Expr(it) }))
                     sdoc.features["bm25-rm-50-rev"] = queryLTRDoc.eval(ltrEnv, tRM.toQExpr(50, scorer = { BM25Expr(it) }))
                     sdoc.features["bm25-rm-100-rev"] = queryLTRDoc.eval(ltrEnv, tRM.toQExpr(100, scorer = { BM25Expr(it) }))
+
+                    for ((name, exprs) in keywords) {
+                        sdoc.features["keywords:$name"] = ltrDoc.eval(ltrEnv, SumExpr(exprs))
+                    }
                 }
 
                 val qPublishDate = doc.published_date ?: 0L
