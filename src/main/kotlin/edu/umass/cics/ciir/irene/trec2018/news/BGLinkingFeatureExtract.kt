@@ -5,7 +5,10 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.galago.inqueryStop
-import edu.umass.cics.ciir.irene.lang.*
+import edu.umass.cics.ciir.irene.lang.BM25Expr
+import edu.umass.cics.ciir.irene.lang.QExpr
+import edu.umass.cics.ciir.irene.lang.QueryLikelihood
+import edu.umass.cics.ciir.irene.lang.SequentialDependenceModel
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel
 import edu.umass.cics.ciir.irene.trec2018.defaultWapoIndexPath
@@ -33,10 +36,9 @@ fun main(args: Array<String>) {
     val homeDir = File(System.getenv("HOME"))
     val queryDir = File(argp.get("queryDir", "$homeDir/code/queries/trec_news"))
     val queries = loadBGLinkQueries("$queryDir/newsir18-background-linking-topics.v2.xml")
-    val judgments: Map<String, QueryJudgments> = QuerySetJudgments("$queryDir/newsir18-background-linking.qrel")
+    val judgments: Map<String, QueryJudgments> = QuerySetJudgments("$queryDir/newsir18-background-linking.qrel", false, false)
 
     val numTerms = argp.get("numTerms", 50)
-    val lambda = argp.get("smoothLambda", 0.8)
 
     val indexPath = File(argp.get("index", defaultWapoIndexPath))
     if (!indexPath.exists() || !indexPath.isDirectory) {
@@ -48,7 +50,7 @@ fun main(args: Array<String>) {
 
     val stopwords = inqueryStop
 
-    File("trec_news.ltr.jsonl.gz").smartPrint { output ->
+    File("trec_news.ltr.v2.jsonl.gz").smartPrint { output ->
         IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
             index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
             index.env.optimizeDirLog = false
@@ -113,10 +115,9 @@ fun main(args: Array<String>) {
                 val titleSDM = SequentialDependenceModel(index.tokenize(doc.title ?: q_paragraphs[0]), stopwords=stopwords)
 
                 val pool = hashSetOf<Int>()
-                pool.addAll(poolQueryExpr(rm.toQExpr(numTerms, scorer = { LinearQLExpr(it, 0.25) }), docNo))
-                pool.addAll(poolQueryExpr(rm.toQExpr(numTerms, scorer = { LinearQLExpr(it, 0.5) }), docNo))
-                pool.addAll(poolQueryExpr(rm.toQExpr(numTerms, scorer = { LinearQLExpr(it, 0.75) }), docNo))
-                pool.addAll(poolQueryExpr(rm.toQExpr(numTerms, scorer = { BM25Expr(it) }), docNo))
+                pool.addAll(poolQueryExpr(rm.toQExpr(10, scorer = { BM25Expr(it) }), docNo))
+                pool.addAll(poolQueryExpr(rm.toQExpr(50, scorer = { BM25Expr(it) }), docNo))
+                pool.addAll(poolQueryExpr(rm.toQExpr(100, scorer = { BM25Expr(it) }), docNo))
                 pool.addAll(poolQueryExpr(titleSDM, docNo))
 
                 val labels = judgments[q.qid] ?: error("No judgments for q=${q.qid}")
@@ -127,19 +128,22 @@ fun main(args: Array<String>) {
                     ScoredWapoDoc(labels.get(wdoc.id), wdoc, hashMapOf())
                 }
 
+
                 val ltrDocs = scoredDocs.associate { it.fields.id to LTRDoc(it.fields.id, it.fields.body, index.defaultField, index.tokenizer) }
                 val scoredDocsById = scoredDocs.associateBy { it.fields.id }
 
                 val featureFns = hashMapOf<String, QExpr>()
 
+                featureFns["bm25-rm-n10"] = rm.toQExpr(10, scorer={BM25Expr(it)})
                 featureFns["bm25-rm-n50"] = rm.toQExpr(50, scorer={BM25Expr(it)})
+                featureFns["bm25-rm-n100"] = rm.toQExpr(100, scorer={BM25Expr(it)})
 
                 featureFns["rm-n10"] = rm.toQExpr(10)
                 featureFns["rm-n50"] = rm.toQExpr(50)
                 featureFns["rm-n100"] = rm.toQExpr(100)
-                featureFns["lce-n10"] = rm.toQExpr(10, discountStatsEnv=index.env)
-                featureFns["lce-n50"] = rm.toQExpr(50, discountStatsEnv=index.env)
-                featureFns["lce-n100"] = rm.toQExpr(100, discountStatsEnv=index.env)
+                //featureFns["lce-n10"] = rm.toQExpr(10, discountStatsEnv=index.env)
+                //featureFns["lce-n50"] = rm.toQExpr(50, discountStatsEnv=index.env)
+                //featureFns["lce-n100"] = rm.toQExpr(100, discountStatsEnv=index.env)
 
                 featureFns["title-ql"] = QueryLikelihood(index.tokenize(doc.title ?: q_paragraphs[0]))
                 featureFns["first-para-ql"] = QueryLikelihood(index.tokenize(q_paragraphs[0]))
