@@ -38,8 +38,6 @@ fun main(args: Array<String>) {
     val queries = loadBGLinkQueries("$queryDir/newsir18-background-linking-topics.v2.xml")
     val judgments: Map<String, QueryJudgments> = QuerySetJudgments("$queryDir/newsir18-background-linking.qrel", false, false)
 
-    val numTerms = argp.get("numTerms", 50)
-
     val indexPath = File(argp.get("index", defaultWapoIndexPath))
     if (!indexPath.exists() || !indexPath.isDirectory) {
         throw IllegalArgumentException("index is not valid: $indexPath")
@@ -50,7 +48,7 @@ fun main(args: Array<String>) {
 
     val stopwords = inqueryStop
 
-    File("trec_news.ltr.v2.jsonl.gz").smartPrint { output ->
+    File("trec_news.ltr.v3.jsonl.gz").smartPrint { output ->
         IreneIndex(IndexParams().apply { withPath(indexPath) }).use { index ->
             index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
             index.env.optimizeDirLog = false
@@ -77,9 +75,9 @@ fun main(args: Array<String>) {
                     val titleDedup = results.scoreDocs
                             // reject duplicates:
                             .filter {
-                                val title = titles.get(it.doc)
+                                val title = titles[it.doc]
                                 // hard-feature: has-title and most recent version:
-                                title != null && title != "null" && title != titles.get(it.doc + 1)
+                                title != null && title != "null" && title != titles[it.doc + 1]
                             }
                             .filterNot {
                                 // Reject opinion/editorial.
@@ -87,17 +85,13 @@ fun main(args: Array<String>) {
                             }
                     titleDedup.filter { it.doc != docNo }
                 }
-                println("Scoring-time: $scoringTime dedup-time: ${dedupTime}")
+                println("Scoring-time: $scoringTime dedup-time: $dedupTime")
 
                 return dedupResults.map { it.doc }
             }
 
-            for (q in queries) {
-                println(q.qid)
-                val docNo = index.documentById(q.docid) ?: error("Missing document for ${q.qid}")
-                val lDoc = index.document(docNo) ?: error("Missing document fields for ${q.qid} internally: $docNo")
-                val doc = fromLucene(index, lDoc)
-                val tokens = index.tokenize(doc.body)
+            fun buildRelevanceModel(doc: LTRDoc): RelevanceModel {
+                val tokens = doc.fields[targetField]?.terms ?: error("No field=$targetField for query document!")
 
                 val counts = TObjectIntHashMap<String>()
                 val length = tokens.size.toDouble()
@@ -110,7 +104,16 @@ fun main(args: Array<String>) {
                     weights.put(term, count / length)
                     true
                 }
-                val rm = RelevanceModel(weights, targetField)
+                return RelevanceModel(weights, targetField)
+            }
+
+            for (q in queries) {
+                println(q.qid)
+                val docNo = index.documentById(q.docid) ?: error("Missing document for ${q.qid}")
+                val lDoc = index.document(docNo) ?: error("Missing document fields for ${q.qid} internally: $docNo")
+                val doc = fromLucene(index, lDoc)
+                val queryLTRDoc = LTRDoc(doc.id, doc.body, index.defaultField, index.tokenizer)
+                val rm = buildRelevanceModel(queryLTRDoc)
                 val q_paragraphs = doc.body.split("\n\n")
                 val titleSDM = SequentialDependenceModel(index.tokenize(doc.title ?: q_paragraphs[0]), stopwords=stopwords)
 
@@ -161,16 +164,25 @@ fun main(args: Array<String>) {
                     }
                     val terms = ltrDoc.fields[index.defaultField]!!.terms
                     sdoc.features["entropy"] = terms.computeEntropy()
+                    val tRM: RelevanceModel = buildRelevanceModel(ltrDoc)
+
+                    sdoc.features["bm25-rm-10-rev"] = queryLTRDoc.eval(ltrEnv, tRM.toQExpr(10, scorer = { BM25Expr(it) }))
+                    sdoc.features["bm25-rm-50-rev"] = queryLTRDoc.eval(ltrEnv, tRM.toQExpr(50, scorer = { BM25Expr(it) }))
+                    sdoc.features["bm25-rm-100-rev"] = queryLTRDoc.eval(ltrEnv, tRM.toQExpr(100, scorer = { BM25Expr(it) }))
                 }
 
-                val qPublishDate = doc.published_date ?: 0L;
+                val qPublishDate = doc.published_date ?: 0L
 
                 for (sdoc in scoredDocs) {
-                    val publishDate = sdoc.fields.published_date ?: 0L;
+                    val publishDate = sdoc.fields.published_date ?: 0L
                     if (sdoc.fields.published_date != null) {
                         sdoc.features["date-cmp"] = publishDate.compareTo(qPublishDate).toDouble()
                         sdoc.features["date-sub"] = (qPublishDate - publishDate).toDouble()
                     }
+
+                    val paras = sdoc.fields.body.split("\n\n")
+                    val titleTerms = index.tokenize(sdoc.fields.title ?: paras[0])
+                    sdoc.features["title-ql-rev"] = queryLTRDoc.eval(ltrEnv, QueryLikelihood(titleTerms))
                 }
 
                 output.println( mapper.writeValueAsString(QueryExtract(q, doc, scoredDocs)) )
