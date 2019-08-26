@@ -13,7 +13,7 @@
         <javaVersion>1.8</javaVersion>
         <galagoVersion>3.16</galagoVersion>
         <luceneVersion>7.1.0</luceneVersion>
-        <jacksonVersion>2.9.9</jacksonVersion>
+        <jacksonVersion>2.10.0.pr1</jacksonVersion>
         <mainClass>edu.umass.cics.ciir.irene.MainKt</mainClass>
         <kotlin.version>1.3.31</kotlin.version>
     </properties>
