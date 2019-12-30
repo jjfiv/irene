@@ -39,7 +39,7 @@ fun main(args: Array<String>) {
             val (time, scores) = timed {
                 val ql = QueryLikelihood(titleTerms);
                 val cl = WhitelistMatchExpr(docIdentifiers=index.search(ql, 1000).scoreDocs.map { it.doc })
-                val rm3 = RelevanceExpansionQ(index, ql)
+                val rm3 = RelevanceExpansionQ(index, ql) ?: error("No expansion for $qid")
                 val clrm3 = RequireExpr(cl, rm3)
                 index.search(clrm3, 1000)
             }
@@ -52,9 +52,12 @@ fun main(args: Array<String>) {
 
 }
 
-fun RelevanceExpansionQ(index: IreneIndex, firstPass: QExpr, depth: Int=50, origWeight: Double = 0.3, numTerms: Int=100, expansionField: String?=null, stopwords: Set<String> = inqueryStop, cache: HashMap<Int, BagOfWords> = HashMap()): QExpr {
+fun ComputeRelevanceModel(index: IreneIndex, firstPass: QExpr, depth: Int=50, expansionField: String?=null, stopwords: Set<String> = inqueryStop, cache: HashMap<Int, BagOfWords> = HashMap()): RelevanceModel? {
     val field = expansionField ?: index.env.defaultField
     val firstPassResults = index.search(firstPass, depth).scoreDocs
+    if (firstPassResults.isEmpty()) {
+        return null
+    }
     val norm = MathUtils.logSumExp(firstPassResults.map { it.score.toDouble() }.toDoubleArray())
     val weights = TObjectDoubleHashMap<String>()
 
@@ -73,7 +76,12 @@ fun RelevanceExpansionQ(index: IreneIndex, firstPass: QExpr, depth: Int=50, orig
             true
         }
     }
-    val expQ = RelevanceModel(weights, expansionField).toQExpr(numTerms)
+    return RelevanceModel(weights, expansionField)
+}
+
+fun RelevanceExpansionQ(index: IreneIndex, firstPass: QExpr, depth: Int=50, origWeight: Double = 0.3, numTerms: Int=100, expansionField: String?=null, stopwords: Set<String> = inqueryStop, cache: HashMap<Int, BagOfWords> = HashMap()): QExpr? {
+    val rm = ComputeRelevanceModel(index, firstPass, depth, expansionField, stopwords, cache) ?: return null
+    val expQ = rm.toQExpr(numTerms)
     return SumExpr(firstPass.weighted(origWeight), expQ.weighted(1.0 - origWeight))
 }
 
@@ -81,7 +89,7 @@ object RobustVariationExperiment {
     @JvmStatic
     fun main(args: Array<String>) {
         val argp = Parameters.parseArgs(args)
-        val qdata = Parameters.parseFile(File("variations_dict.json"))
+        val qdata = Parameters.parseFile(File("human_query_variations.json"))
         val titles: Map<String, String> = File(argp.get("queryFile", "/Users/jfoley/code/queries/robust04/rob04.titles.tsv")).smartLines { lines ->
             lines.associate { line ->
                 val row =  line.trim().split("\t")
@@ -92,7 +100,7 @@ object RobustVariationExperiment {
 
 
         val queries = qdata.keys.sorted()
-        val trecRunOutput = File("robust.rm3_variants_combsum.trecrun").smartPrinter()
+        val trecRunOutput = File("robust.rm3_human_variants.trecrun").smartPrinter()
 
         IndexParams().apply {
             withPath(File(argp.get("index", "robust04.irene")))
@@ -113,10 +121,17 @@ object RobustVariationExperiment {
                     val cache = HashMap<Int, BagOfWords>()
 
                     // variants with RM expansion:
-                    val variations: HashMap<String, QExpr> = qdata.getStr(qid).split('\t').associateTo(HashMap()) { variant ->
-                        Pair(variant, RelevanceExpansionQ(index, QueryLikelihood(index.tokenize(variant)), cache=cache))
+                    val variations = HashMap<String, QExpr>()
+                    for (variant in qdata.getStr(qid).trim().split('\t')) {
+                        if (variant.isBlank()) {
+                            continue
+                        }
+                        val q = RelevanceExpansionQ(index, QueryLikelihood(index.tokenize(variant)), cache=cache) ?: continue
+                        variations[variant] = q
                     }
-                    variations.put(title, RelevanceExpansionQ(index, QueryLikelihood(index.tokenize(title)), cache=cache))
+                    RelevanceExpansionQ(index, QueryLikelihood(index.tokenize(title)), cache=cache)?.let { q ->
+                        variations.put(title, q)
+                    }
 
                     val sumVarExpr = SumExpr(variations.values.toList())
                     /*
@@ -140,13 +155,43 @@ object RobustVariationExperiment {
                     */
                     index.search(sumVarExpr, 1000).toQueryResults(index, qid)
                 }
-                qres.outputTrecrun(trecRunOutput, "sdm_variants_rm3")
+                qres.outputTrecrun(trecRunOutput, "human_variants_rm3")
 
-                System.out.printf("${qid}\tSDM-Variants Time: %1.3fs total=%d\n", time, qres.size)
+                System.out.printf("${qid}\tHuman-Variants-RM3 Time: %1.3fs total=%d\n", time, qres.size)
             }
         }
 
         trecRunOutput.close()
 
+    }
+}
+
+object RobustRMTerms {
+    @JvmStatic fun main(args: Array<String>) {
+        val argp = Parameters.parseArgs(args)
+        val titles: Map<String, String> = File(argp.get("queryFile", "/Users/jfoley/code/queries/robust04/rob04.titles.tsv")).smartLines { lines ->
+            lines.associate { line ->
+                val row = line.trim().split("\t")
+                Pair(row[0], row[1])
+            }
+        }
+
+        val outJSON = Parameters.create();
+
+        IndexParams().apply {
+            withPath(File(argp.get("index", "robust04.irene")))
+        }.openReader().use { index ->
+            index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
+            index.env.estimateStats = "min"
+
+            for ((qid, title) in titles) {
+                println("${qid} ${title}")
+                val rm = ComputeRelevanceModel(index, QueryLikelihood(index.tokenize(title)))
+                val termWeights = Parameters.wrap(rm!!.toTerms(1000).associate { Pair(it.term, it.score)})
+                outJSON.put(qid, termWeights)
+            }
+        }
+
+        File("robust.rmTerms.json").writeText(outJSON.toString())
     }
 }
