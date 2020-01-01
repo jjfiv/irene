@@ -1,0 +1,17 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install vendored Galago
+      run: ./install_galago
+    - name: mvn test
+      run: mvn test
+    - name: mvn package
+      run: mvn package
