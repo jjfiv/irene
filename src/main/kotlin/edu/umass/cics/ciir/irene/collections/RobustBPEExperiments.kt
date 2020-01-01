@@ -1,12 +1,7 @@
 package edu.umass.cics.ciir.irene.collections
 
-import edu.umass.cics.ciir.irene.IndexParams
-import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.galago.toQueryResults
-import edu.umass.cics.ciir.irene.lang.QueryLikelihood
 import edu.umass.cics.ciir.irene.lang.SequentialDependenceModel
-import edu.umass.cics.ciir.irene.trec2018.core.LoadTrecCoreQueries
-import edu.umass.cics.ciir.irene.trec2018.defaultWapoIndexPath
 import edu.umass.cics.ciir.irene.utils.smartLines
 import edu.umass.cics.ciir.irene.utils.smartPrinter
 import edu.umass.cics.ciir.irene.utils.timed
