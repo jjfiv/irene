@@ -57,7 +57,7 @@ fun main(args: Array<String>) {
                 emptyList<Int>()
             }
             val docNo = keep.sample(1, rand)[0]
-            val tokens = index.terms(docNo)
+            val tokens = index.terms(docNo, index.env.defaultField)
 
             val query = documentVectorToQuery(tokens, numTerms, targetField=index.defaultField, unigramWeight=weight)
             val pool: List<LTRDoc> = index.search(query, 200)

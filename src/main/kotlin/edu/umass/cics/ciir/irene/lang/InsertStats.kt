@@ -45,6 +45,8 @@ fun insertStats(env: RREnv, input: QExpr) = qmap(input) { q ->
         is DirQLExpr -> DirQLExpr(q.trySingleChild, q.mu, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is AbsoluteDiscountingQLExpr -> AbsoluteDiscountingQLExpr(q.trySingleChild, q.delta, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is BM25Expr -> BM25Expr(q.trySingleChild, b=q.b, k=q.k, stats=q.stats ?: computeCountStats(q.trySingleChild, env).get())
+
+        is RM3Expr -> error("Expansion Models should not be created directly!")
     }
 }
 

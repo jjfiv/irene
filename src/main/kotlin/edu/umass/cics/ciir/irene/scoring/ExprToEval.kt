@@ -90,5 +90,6 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
     is WhitelistMatchExpr -> WhitelistMatchEvalNode(TIntHashSet(ctx.selectRelativeDocIds(q.docIdentifiers!!)))
     is CountEqualsExpr -> CountEqualsNode(q.target, exprToEval(q.child, ctx))
     is LongLTE -> EvalLongLTE(exprToEval(q.child, ctx) as LongEvalNode, q.threshold)
+    is RM3Expr -> error("Expansion Models should not be created directly!")
 }
 

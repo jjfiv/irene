@@ -47,6 +47,7 @@ private fun createMoverRec(q: QExpr, ctx: IQContext) : QueryMover = when(q) {
     }
     // Ditch the equals part for mover... this is probably really slow...
     is CountEqualsExpr -> createMoverRec(q.child, ctx)
+    is RM3Expr -> error("Expansion Models should not be created directly!")
 }
 
 /** Borrow this constant locally. */

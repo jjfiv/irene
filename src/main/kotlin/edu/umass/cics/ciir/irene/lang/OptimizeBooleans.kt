@@ -207,6 +207,8 @@ fun simplifyBools(input: QExpr, ctx: FixedPointBooleanSimplification): QExpr {
             is WhitelistMatchExpr,
             is LongLTE,
             is MultiExpr -> q
+
+            is RM3Expr -> error("Expansion Models should not be created directly!")
         }
     }
 }

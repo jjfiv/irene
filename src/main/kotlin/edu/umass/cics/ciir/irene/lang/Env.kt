@@ -1,8 +1,30 @@
 package edu.umass.cics.ciir.irene.lang
 
 import edu.umass.cics.ciir.irene.CountStats
+import edu.umass.cics.ciir.irene.IreneWeightedDoc
+import edu.umass.cics.ciir.irene.galago.inqueryStop
+import edu.umass.cics.ciir.irene.ltr.BagOfWords
 import edu.umass.cics.ciir.irene.ltr.LTREvalSetupContext
+import edu.umass.cics.ciir.irene.ltr.RelevanceModel
 import edu.umass.cics.ciir.irene.scoring.exprToEval
+import gnu.trove.map.hash.TObjectDoubleHashMap
+import org.apache.lucene.search.TopDocs
+import org.lemurproject.galago.utility.MathUtils
+
+data class EnvConfig(
+        val defaultField: String = "document",
+        val defaultDirichletMu: Double = 1500.0,
+        val defaultLinearSmoothingLambda: Double = 0.8,
+        val defaultBM25b: Double = 0.75,
+        val defaultBM25k: Double = 1.2,
+        val absoluteDiscountingDelta: Double = 0.7,
+        val estimateStats: String? = "min",
+        val optimizeMovement: Boolean = true,
+        val shareIterators: Boolean = true,
+        val optimizeBM25: Boolean = false,
+        val optimizeDirLog: Boolean = false,
+        val indexedBigrams: Boolean = false
+        )
 
 abstract class RREnv {
     open var defaultField = "document"
@@ -18,6 +40,8 @@ abstract class RREnv {
     open var optimizeDirLog = false
     open var indexedBigrams = false
 
+    open fun stopwords(): Set<String> = inqueryStop
+
     val ltrContext = LTREvalSetupContext(this)
     fun makeLTRQuery(q: QExpr) = exprToEval(prepare(q), ltrContext)
 
@@ -26,12 +50,29 @@ abstract class RREnv {
     abstract fun computeStats(q: QExpr): CountStats
     abstract fun getStats(term: String, field: String? =null): CountStats
 
+    /**
+     * Search via an atomic query.
+     * @param q a query with no re-ranking components.
+     * @param limit the depth with which to rank.
+     * @return a list of ranked documents for a query.
+     */
+    abstract fun search(q: QExpr, limit: Int): List<IreneWeightedDoc>
+    abstract fun lookupTerms(doc: Int, field: String): List<String>
+
     /** @return a list of internal identifiers */
     abstract fun lookupNames(docNames: Set<String>): List<Int>
 
+    fun expandIfNecessary(q: QExpr): QExpr {
+        val cache = HashMap<Int, BagOfWords>()
+        var expanded = q;
+        while (expanded.requiresPRF()) {
+            expanded = doPRFStep(this, expanded, cache)
+        }
+        return expanded
+    }
+
     fun prepare(q: QExpr): QExpr {
-        var pq =
-                simplify(q)
+        var pq = simplify(expandIfNecessary(q))
                 .map { reduceSingleChildren(it) }
         applyEnvironment(this, pq)
         try {
@@ -64,6 +105,24 @@ abstract class RREnv {
             return simplify(bq)
         } else {
             return simplify(pq)
+        }
+    }
+}
+
+fun doPRFStep(env: RREnv, query: QExpr, cache: HashMap<Int, BagOfWords>): QExpr {
+    return query.map { q ->
+        when(q) {
+            is RM3Expr -> {
+                    if (q.child.requiresPRF()) {
+                        error("QExpr.map should be bottom-up. Did you add a new PRF-QExpr?")
+                    }
+                    RelevanceExpansionQ(env,
+                            q.child, q.fbDocs, q.origWeight, q.fbTerms,
+                            q.field ?: env.defaultField,
+                            if (q.stopwords) { env.stopwords() } else { emptySet() },
+                            cache) ?: error("PRF had no matches: $q")
+                }
+            else -> q
         }
     }
 }

@@ -4,6 +4,7 @@ import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.scoring.*
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.*
+import org.lemurproject.galago.utility.Parameters
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -52,6 +53,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         is RequireExpr -> mapper(RequireExpr(qmap(q.cond, mapper), qmap(q.value, mapper)))
         is MustExpr -> mapper(MustExpr(qmap(q.must, mapper), qmap(q.value, mapper)))
         is LongLTE -> mapper(LongLTE(qmap(q.child, mapper), q.threshold))
+        is RM3Expr -> mapper(RM3Expr(qmap(q.child, mapper), q.origWeight, q.fbDocs, q.fbTerms, q.field, q.stopwords))
     }
 }
 
@@ -62,7 +64,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
  *
  * @author jfoley.
  */
-sealed class QExpr {
+abstract sealed class QExpr {
     val trySingleChild: QExpr
         get() {
         if (children.size != 1) error("Looked for a child on a node with children: $this")
@@ -75,6 +77,20 @@ sealed class QExpr {
         } else it
     }
     open fun applyEnvironment(env: RREnv) {}
+
+    fun requiresPRF(): Boolean {
+        var requiresPRF = false
+        this.visit {q ->
+            when(q) {
+                is RM3Expr -> {
+                    requiresPRF = true
+                    return@visit
+                }
+                else -> {}
+            }
+        }
+        return requiresPRF
+    }
 
     private fun findLuceneTextNodes(lq: Query, out: HashSet<TextExpr>) {
         when(lq) {
@@ -387,3 +403,8 @@ data class BoolToScoreExpr(override var child: QExpr, var trueScore: Double=1.0,
 data class CountToBoolExpr(override var child: QExpr, var gt: Int = 0): SingleChildExpr() {
 }
 
+/** This is a two-pass query node. */
+data class RM3Expr(override var child: QExpr, var origWeight: Double=0.3,
+                   var fbDocs: Int=10, var fbTerms: Int=100,
+                   var field: String? = null, var stopwords: Boolean = true): SingleChildExpr() {
+}

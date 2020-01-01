@@ -147,6 +147,8 @@ interface IIndex : Closeable {
     fun sample(q: QExpr, n: Int): ReservoirSampler<Int> {
         return this.sample(q, n, ThreadLocalRandom.current())
     }
+
+    fun terms(doc: Int, field: String): List<String>
 }
 class EmptyIndex(override val tokenizer: GenericTokenizer = WhitespaceTokenizer()) : IIndex {
     override val defaultField: String = "missing"
@@ -161,6 +163,7 @@ class EmptyIndex(override val tokenizer: GenericTokenizer = WhitespaceTokenizer(
     override fun explain(q: QExpr, doc: Int): Explanation {
         return Explanation.noMatch("EmptyIndex")
     }
+    override fun terms(doc: Int, field: String): List<String> = error("EmptyIndex does not have field=$field for doc=$doc")
     override fun docAsParameters(doc: Int): Parameters? = null
     override fun count(q: QExpr): Int = 0
     override fun matches(q: QExpr): RoaringBitmap = RoaringBitmap()
@@ -230,7 +233,7 @@ class IreneIndex(val io: RefCountedIO, val params: IndexParams) : IIndex {
         return response
     }
 
-    fun terms(doc: Int, field: String = defaultField): List<String> {
+    override fun terms(doc: Int, field: String): List<String> {
         val text = getField(doc, field)?.stringValue() ?: return emptyList()
         return tokenize(text, field)
     }

@@ -9,3 +9,12 @@
 *.jl
 dependency-reduced-pom.xml
 /galago/target
+/venv/
+.classpath
+.project
+.settings
+.vscode
+/robust
+trash
+*.tsv
+__pycache__

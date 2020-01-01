@@ -79,6 +79,12 @@ private fun toGalagoRecursive(q : QExpr): GExpr {
             addChild(toGalagoRecursive(q.child))
             setf("defaultDirichletMu", q.mu)
         }
+        is RM3Expr -> GExpr("rm").apply {
+            setf("fbOrigWeight", q.origWeight)
+            setf("fbTerms", q.fbTerms)
+            setf("fbDocs", q.fbDocs)
+            addChild(toGalagoRecursive(q.child))
+        }
         is BM25Expr -> GExpr("bm25").apply {
             // LENGTHS MUST BE FIRST.
             addChild(createLengths(q.child))
@@ -108,6 +114,7 @@ private fun toGalagoRecursive(q : QExpr): GExpr {
         is CountEqualsExpr -> TODO()
         is DenseFloatField, is DenseLongField -> TODO()
         is LongLTE -> TODO()
+
     }
 }
 
