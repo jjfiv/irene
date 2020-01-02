@@ -13,7 +13,7 @@ index = service.open("robust", "robust04.irene")
 
 #%%
 titles = {}
-with open("/Users/jfoley/code/queries/robust04/rob04.titles.tsv") as fp:
+with open("queries/robust04/rob04.titles.tsv") as fp:
     for line in fp:
         [qid, text] = line.strip().split("\t")
         titles[qid] = text

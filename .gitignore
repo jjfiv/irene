@@ -19,3 +19,4 @@ trash
 *.tsv
 __pycache__
 .mypy_cache
+/queries
