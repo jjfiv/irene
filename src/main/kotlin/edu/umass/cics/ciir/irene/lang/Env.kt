@@ -5,43 +5,28 @@ import edu.umass.cics.ciir.irene.IreneWeightedDoc
 import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.ltr.BagOfWords
 import edu.umass.cics.ciir.irene.ltr.LTREvalSetupContext
-import edu.umass.cics.ciir.irene.ltr.RelevanceModel
 import edu.umass.cics.ciir.irene.scoring.exprToEval
-import gnu.trove.map.hash.TObjectDoubleHashMap
-import org.apache.lucene.search.TopDocs
-import org.lemurproject.galago.utility.MathUtils
 
 data class EnvConfig(
-        val defaultField: String = "document",
-        val defaultDirichletMu: Double = 1500.0,
-        val defaultLinearSmoothingLambda: Double = 0.8,
-        val defaultBM25b: Double = 0.75,
-        val defaultBM25k: Double = 1.2,
-        val absoluteDiscountingDelta: Double = 0.7,
-        val estimateStats: String? = "min",
-        val optimizeMovement: Boolean = true,
-        val shareIterators: Boolean = true,
-        val optimizeBM25: Boolean = false,
-        val optimizeDirLog: Boolean = false,
-        val indexedBigrams: Boolean = false
-        )
+    var defaultField: String = "document",
+    var defaultDirichletMu: Double = 1500.0,
+    var defaultLinearSmoothingLambda: Double = 0.8,
+    var defaultBM25b: Double = 0.75,
+    var defaultBM25k: Double = 1.2,
+    var absoluteDiscountingDelta: Double = 0.7,
+    var estimateStats: String? = "min",
+    var optimizeMovement: Boolean = true,
+    var shareIterators: Boolean = true,
+    var optimizeBM25: Boolean = false,
+    var optimizeDirLog: Boolean = false,
+    var indexedBigrams: Boolean = false,
+    var prfStopwords: Set<String> = inqueryStop
+)
 
 abstract class RREnv {
-    open var defaultField = "document"
-    open var defaultDirichletMu = 1500.0
-    open var defaultLinearSmoothingLambda = 0.8;
-    open var defaultBM25b = 0.75
-    open var defaultBM25k = 1.2
-    open var absoluteDiscountingDelta = 0.7
-    open var estimateStats: String? = "min"
-    open var optimizeMovement = true
-    open var shareIterators: Boolean = true
-    open var optimizeBM25 = false
-    open var optimizeDirLog = false
-    open var indexedBigrams = false
+    open var config = EnvConfig()
 
-    open fun stopwords(): Set<String> = inqueryStop
-
+    val defaultField: String get() = config.defaultField
     val ltrContext = LTREvalSetupContext(this)
     fun makeLTRQuery(q: QExpr) = exprToEval(prepare(q), ltrContext)
 
@@ -84,7 +69,7 @@ abstract class RREnv {
         pq = insertStats(this, pq)
 
         // Optimize BM25:
-        if (optimizeBM25) {
+        if (config.optimizeBM25) {
             // Only our system supports "lifting" the idf out of a BM25Expr.
             val bq = pq.map { c ->
                 if (c is BM25Expr && !c.extractedIDF) {
@@ -119,7 +104,7 @@ fun doPRFStep(env: RREnv, query: QExpr, cache: HashMap<Int, BagOfWords>): QExpr 
                     RelevanceExpansionQ(env,
                             q.child, q.fbDocs, q.origWeight, q.fbTerms,
                             q.field ?: env.defaultField,
-                            if (q.stopwords) { env.stopwords() } else { emptySet() },
+                            if (q.stopwords) { env.config.prfStopwords } else { emptySet() },
                             cache) ?: error("PRF had no matches: $q")
                 }
             else -> q

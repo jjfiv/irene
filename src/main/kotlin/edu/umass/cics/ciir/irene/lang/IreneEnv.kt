@@ -7,14 +7,12 @@ import org.apache.lucene.queryparser.classic.QueryParser
  * @author jfoley.
  */
 class IreneQueryLanguage(val index: IIndex = EmptyIndex()) : RREnv() {
-    // TODO, true:
-    override var optimizeBM25 = true
-    override var optimizeDirLog = true
-    override var defaultField: String
-        get() = index.defaultField
-        set(value) {
-            error("Crap!")
-        }
+    init {
+        config.optimizeBM25 = true
+        config.optimizeDirLog = true
+        config.defaultField = index.defaultField
+        config.estimateStats = null
+    }
 
     override fun lookupNames(docNames: Set<String>): List<Int> = docNames.mapNotNull { index.documentById(it) }
     override fun fieldStats(field: String): CountStats = index.fieldStats(field) ?: error("Requested field $field does not exist.")
@@ -33,6 +31,5 @@ class IreneQueryLanguage(val index: IIndex = EmptyIndex()) : RREnv() {
 
     val luceneQueryParser: QueryParser
         get() = QueryParser(defaultField, (index as IreneIndex).analyzer)
-    override var estimateStats: String? = null
 }
 

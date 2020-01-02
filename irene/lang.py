@@ -32,7 +32,7 @@ class QExpr(object):
     def children(self):
         return list(attr.asdict(self, recurse=False, filter=lambda attr,x: isinstance(x, QExpr)).values())
     def weighted(self, weight):
-        return WeightedExpr(child=self, weight=weight)
+        return WeightExpr(child=self, weight=weight)
 
 ###
 # Boolean opeartions
@@ -101,10 +101,10 @@ class MaxExpr(QExpr):
     kind = attr.ib(type=str, default='Max')
 
 @attr.s
-class WeightedExpr(QExpr):
+class WeightExpr(QExpr):
     child = attr.ib(type=QExpr)
     weight = attr.ib(type=float)
-    kind = attr.ib(type=str, default='Weighted')
+    kind = attr.ib(type=str, default='Weight')
 
 ###
 # Leaf Nodes
@@ -180,10 +180,9 @@ class BM25Expr(QExpr):
 @attr.s
 class LinearQLExpr(QExpr):
     child = attr.ib(type=QExpr)
-    smoothing_lambda = attr.ib(type=Optional[float], default=None)
+    lambda_ = attr.ib(type=Optional[float], default=None)
     stats = attr.ib(type=CountStats, default=None)
     kind = attr.ib(type=str, default='LinearQL')
-
 
 @attr.s
 class DirQLExpr(QExpr):
@@ -202,9 +201,8 @@ class RM3Expr(QExpr):
     field = attr.ib(type=Optional[str], default=None)
     kind = attr.ib(type=str, default='RM3')
 
-
 if __name__ == '__main__':
-    expr = WeightedExpr(child=TextExpr("hello"), weight=0.5)
+    expr = WeightExpr(child=TextExpr("hello"), weight=0.5)
     print(expr)
     print(expr.children())
 #%%

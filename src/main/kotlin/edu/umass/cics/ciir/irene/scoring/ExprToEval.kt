@@ -24,7 +24,7 @@ fun exprToEval(q: QExpr, ctx: EvalSetupContext): QueryEvalNode = when(q) {
     is SynonymExpr -> TODO()
     is AndExpr -> BooleanAndEval(q.children.map { exprToEval(it, ctx) })
     is OrExpr -> BooleanOrEval(q.children.map { exprToEval(it, ctx) })
-    is CombineExpr -> if(ctx.env.optimizeDirLog && q.children.all { it is DirQLExpr }) {
+    is CombineExpr -> if(ctx.env.config.optimizeDirLog && q.children.all { it is DirQLExpr }) {
         // Ok, if this is query likelihood, optimize code gen:
         WeightedLogSumEval(
                 q.children.map { c ->

@@ -5,7 +5,12 @@ import attr
 
 service = IreneService()
 INDEX = 'robust'
+print(service.indexes())
 service.open(INDEX, 'robust04.irene')
+print(service.indexes())
+print(service.config(INDEX))
+
+
 terms = service.tokenize(INDEX, "hello world!")
 ql = RM3Expr(
     CombineExpr(

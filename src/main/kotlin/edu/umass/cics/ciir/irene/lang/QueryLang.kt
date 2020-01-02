@@ -282,7 +282,7 @@ fun BoolExpr(field: String, desired: Boolean=true): QExpr {
 /**
  * [TextExpr] represent a term [text] inside a [field] smoothed with statistics [stats] derived from [statsField]. By default [field] and [statsField] will be the same, and will be filled with sane defaults if left empty.
  */
-data class TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS) : LeafExpr(), Comparable<TextExpr> {
+data class TextExpr(var text: String, var field: String? = null, var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS) : LeafExpr(), Comparable<TextExpr> {
     override fun compareTo(other: TextExpr): Int {
         val cmp = (field ?: "").compareTo(other.field ?: "")
         if (cmp == 0) {
@@ -377,23 +377,23 @@ data class LogValueExpr(override var child: QExpr): SingleChildExpr() {
 
 data class DirQLExpr(override var child: QExpr, var mu: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        this.mu = env.defaultDirichletMu
+        this.mu = env.config.defaultDirichletMu
     }
 }
 data class LinearQLExpr(override var child: QExpr, var lambda: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        this.lambda = env.defaultLinearSmoothingLambda
+        this.lambda = env.config.defaultLinearSmoothingLambda
     }
 }
 data class AbsoluteDiscountingQLExpr(override var child: QExpr, var delta: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        this.delta = env.absoluteDiscountingDelta
+        this.delta = env.config.absoluteDiscountingDelta
     }
 }
 data class BM25Expr(override var child: QExpr, var b: Double? = null, var k: Double? = null, var stats: CountStats? = null, var extractedIDF: Boolean = false): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        if (b == null) b = env.defaultBM25b
-        if (k == null) k = env.defaultBM25k
+        if (b == null) b = env.config.defaultBM25b
+        if (k == null) k = env.config.defaultBM25k
     }
 }
 data class CountToScoreExpr(override var child: QExpr): SingleChildExpr() {

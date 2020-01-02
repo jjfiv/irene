@@ -74,7 +74,7 @@ fun computeCountStats(q: QExpr, env: RREnv): CountStatsStrategy {
     return if (q is TextExpr) {
         ExactEnvStats(env, q.text, q.statsField())
     } else if (q is OrderedWindowExpr || q is UnorderedWindowExpr || q is SmallerCountExpr || q is UnorderedWindowCeilingExpr || q is ProxExpr) {
-        val method = env.estimateStats ?: return LazyCountStats(q.deepCopy(), env)
+        val method = env.config.estimateStats ?: return LazyCountStats(q.deepCopy(), env)
         approxStats(env, q, method)
     } else {
         TODO("computeCountStats($q)")

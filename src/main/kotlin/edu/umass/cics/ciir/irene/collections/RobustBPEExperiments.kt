@@ -20,7 +20,7 @@ fun main(args: Array<String>) {
     val qlOutput = File("robust.bpe_sdm.trecrun.gz").smartPrinter()
 
     RobustBPEParams.openReader().use { index ->
-        index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
+        index.env.config.defaultDirichletMu = index.getAverageDL(index.defaultField)
 
         for ((qid, title) in queries) {
             val titleTerms = index.tokenize(title)

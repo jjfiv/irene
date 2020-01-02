@@ -26,7 +26,7 @@ class RRGalagoEnv(val retr: LocalRetrieval) : RREnv() {
     }
 
     init {
-        defaultField = "document"
+        config.defaultField = "document"
     }
     val lengthsInfo = HashMap<String, FieldStatistics>()
     private fun getFieldStats(field: String): FieldStatistics {

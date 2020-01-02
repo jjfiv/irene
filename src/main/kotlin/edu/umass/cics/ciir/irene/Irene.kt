@@ -47,6 +47,7 @@ class IndexParams {
     var directory: RefCountedIO? = null
     var openMode: IndexWriterConfig.OpenMode? = null
     var idFieldName = "id"
+    var filePath: File? = null
 
     fun withAnalyzer(field: String, analyzer: Analyzer): IndexParams {
         perFieldAnalyzers[field] = analyzer
@@ -58,6 +59,7 @@ class IndexParams {
         return this
     }
     fun withPath(fp: File): IndexParams {
+        filePath = fp
         directory = RefCountedIO(DiskIO.open(fp.toPath()))
         return this
     }

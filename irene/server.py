@@ -14,6 +14,12 @@ class QueryResponse(object):
     topdocs = attr.ib(type=List[DocResponse])
     totalHits = attr.ib(type=int)
 
+@attr.s
+class IndexInfo(object):
+    defaultField = attr.ib(type=str)
+    path = attr.ib(type=str)
+    idFieldName = attr.ib(type=str)
+
 #%%
 class IreneService(object):
     def __init__(self, host="localhost", port=1234):
@@ -49,3 +55,10 @@ class IreneService(object):
        r_json = requests.post(self._url('/query'), json=params).json()
        topdocs = r_json['topdocs']
        return QueryResponse([DocResponse(**td) for td in topdocs], r_json['totalHits'])
+
+    def indexes(self) -> Dict[str,IndexInfo]:
+        json = requests.get(self._url("/indexes")).json()
+        return dict((k, IndexInfo(**v)) for (k,v) in json.items())
+    
+    def config(self, index) -> Dict[str, Any]:
+       return requests.get(self._url("/config"), params={'index': index}).json()

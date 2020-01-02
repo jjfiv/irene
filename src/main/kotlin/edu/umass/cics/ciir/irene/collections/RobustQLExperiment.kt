@@ -31,7 +31,7 @@ fun main(args: Array<String>) {
     IndexParams().apply {
         withPath(File(argp.get("index", "robust04.irene")))
     }.openReader().use { index ->
-        index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
+        index.env.config.defaultDirichletMu = index.getAverageDL(index.defaultField)
 
         for ((qid, title) in queries) {
             val titleTerms = index.tokenize(title)
@@ -72,8 +72,8 @@ object RobustVariationExperiment {
         IndexParams().apply {
             withPath(File(argp.get("index", "robust04.irene")))
         }.openReader().use { index ->
-            index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
-            index.env.estimateStats = "min"
+            index.env.config.defaultDirichletMu = index.getAverageDL(index.defaultField)
+            index.env.config.estimateStats = "min"
 
             for (qid in queries) {
                 if (qid !in titles) {
@@ -113,8 +113,8 @@ object RobustRMTerms {
         IndexParams().apply {
             withPath(File(argp.get("index", "robust04.irene")))
         }.openReader().use { index ->
-            index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
-            index.env.estimateStats = "min"
+            index.env.config.defaultDirichletMu = index.getAverageDL(index.defaultField)
+            index.env.config.estimateStats = "min"
 
             for ((qid, title) in titles) {
                 println("${qid} ${title}")
@@ -149,8 +149,8 @@ object RobustWeightedVariants {
         IndexParams().apply {
             withPath(File(argp.get("index", "robust04.irene")))
         }.openReader().use { index ->
-            index.env.defaultDirichletMu = index.getAverageDL(index.defaultField)
-            index.env.estimateStats = "min"
+            index.env.config.defaultDirichletMu = index.getAverageDL(index.defaultField)
+            index.env.config.estimateStats = "min"
 
             val msg = CountingDebouncer(total=queries.size.toLong());
             for (qid in queries) {

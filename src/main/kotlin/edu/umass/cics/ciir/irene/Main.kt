@@ -3,7 +3,8 @@ package edu.umass.cics.ciir.irene
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.lang.QExpr
+import edu.umass.cics.ciir.irene.galago.pmake
+import edu.umass.cics.ciir.irene.lang.EnvConfig
 import edu.umass.cics.ciir.irene.lang.expr_from_json
 import org.lemurproject.galago.tupleflow.web.WebHandler
 import org.lemurproject.galago.tupleflow.web.WebServer
@@ -48,6 +49,26 @@ class IreneAPIServer(val argp: Parameters) : WebHandler {
             val GET = request.method == "GET"
             val POST = request.method == "POST"
             when (request.pathInfo) {
+                "/indexes" -> if (GET) {
+                    response.sendRawJSON(Parameters.wrap(indexes.mapValues { index ->
+                        val params = index.value.params
+                        pmake {
+                            set("defaultField", params.defaultField)
+                            set("path", params.filePath.toString())
+                            set("idFieldName", params.idFieldName)
+                        }
+                    }).toString())
+                }
+                "/config" -> if (GET) {
+                    val index = indexes[request.getParamOrNull("index") ?: error("index must be specified")]
+                            ?: error("no such index!")
+                    response.sendJSON(index.env.config)
+                } else if (POST && request.contentType == "application/json") {
+                    val index = indexes[request.getParamOrNull("index") ?: error("index must be specified")]
+                            ?: error("no such index!")
+                    // TODO: make this more fine-grained
+                    index.env.config = mapper.readValue(request.reader, EnvConfig::class.java)
+                }
                 "/open" -> if (POST) {
                     val name = request.getParamOrNull("name") ?: error("Name for index must be assigned!")
                     if (indexes.contains(name)) {
@@ -74,6 +95,13 @@ class IreneAPIServer(val argp: Parameters) : WebHandler {
                     val id = request.getParamOrNull("id") ?: error("doc id must be specified")
                     val internal = index.documentById(id) ?: error("No such id!")
                     response.sendRawJSON(index.docAsParameters(internal).toString())
+                }
+                "/prepare" -> if (POST && request.contentType == "application/json") {
+                    val qp = Parameters.parseReader(request.reader)
+                    val query = expr_from_json(qp)
+                    val index_id = qp.getString("index") ?: error("must provide index")
+                    val index = this.indexes[index_id] ?: error("no such index=${index_id}")
+                    response.sendJSON(mapper.writeValueAsString(query))
                 }
                 "/query" -> if (POST && request.contentType == "application/json") {
                     val qp = Parameters.parseReader(request.reader)
