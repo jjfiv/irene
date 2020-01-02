@@ -44,6 +44,17 @@ fun stats_from_json(p: Parameters, key: String="stats"): CountStats? {
     }
 }
 
+fun maybe_stats_to_json(cs: CountStats?): Parameters? {
+    val stats = cs ?: return null
+    return pmake {
+        put("source", stats.source)
+        put("cf", stats.cf)
+        put("df", stats.df)
+        put("cl", stats.cl)
+        put("dc", stats.dc)
+    }
+}
+
 fun children_from_json(p: Parameters, key: String="children"): List<QExpr> {
     return p.getAsList(key).map { x ->
         when(x) {
@@ -72,7 +83,7 @@ fun expr_to_json(q: QExpr): Parameters {
             put("stats_field", q.statsField)
         }
         is TextExpr -> pmake {
-            put("kind", "Lengths")
+            put("kind", "Text")
             putIfNotNull("text", q.text)
             putIfNotNull("field", q.field)
             putIfNotNull("stats_field", q.statsField)
@@ -120,14 +131,27 @@ fun expr_to_json(q: QExpr): Parameters {
         is WeightExpr -> TODO()
         is CountEqualsExpr -> TODO()
         is LogValueExpr -> TODO()
-        is DirQLExpr -> TODO()
+        is DirQLExpr -> pmake {
+            put("kind", "DirQL")
+            put("child", expr_to_json(q.child))
+            putIfNotNull("mu", q.mu)
+            putIfNotNull("stats", maybe_stats_to_json(q.stats))
+        }
         is LinearQLExpr -> TODO()
         is AbsoluteDiscountingQLExpr -> TODO()
         is BM25Expr -> TODO()
         is CountToScoreExpr -> TODO()
         is BoolToScoreExpr -> TODO()
         is CountToBoolExpr -> TODO()
-        is RM3Expr -> TODO()
+        is RM3Expr -> pmake {
+            put("kind", "RM3")
+            put("orig_weight", q.origWeight)
+            put("fb_docs", q.fbDocs)
+            put("fb_terms", q.fbTerms)
+            put("stopwords", q.stopwords)
+            putIfNotNull("field", q.field)
+            put("child", expr_to_json(q.child))
+        }
         is RequireExpr -> TODO()
         is MustExpr -> TODO()
     }
@@ -136,6 +160,9 @@ fun expr_to_json(q: QExpr): Parameters {
 fun expr_from_json(p: Parameters): QExpr {
     return when(p.get("kind")) {
         null -> error("invalid JSON, missing kind! $p")
+        "Lengths" -> LengthsExpr(
+            statsField=p.getString("field")
+        )
         "BM25" -> BM25Expr(
                 child=child_from_json(p),
                 b=p.doubleOrNull("b"),

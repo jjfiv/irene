@@ -18,3 +18,4 @@ dependency-reduced-pom.xml
 trash
 *.tsv
 __pycache__
+.mypy_cache

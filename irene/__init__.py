@@ -1,2 +1,2 @@
 #%%
-import irene.lang
+from .server import IreneIndex, IreneService, QueryResponse, DocResponse, IndexInfo

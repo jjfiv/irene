@@ -6,6 +6,7 @@ import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.pmake
 import edu.umass.cics.ciir.irene.lang.EnvConfig
 import edu.umass.cics.ciir.irene.lang.expr_from_json
+import edu.umass.cics.ciir.irene.lang.expr_to_json
 import org.lemurproject.galago.tupleflow.web.WebHandler
 import org.lemurproject.galago.tupleflow.web.WebServer
 import org.lemurproject.galago.utility.Parameters
@@ -98,10 +99,10 @@ class IreneAPIServer(val argp: Parameters) : WebHandler {
                 }
                 "/prepare" -> if (POST && request.contentType == "application/json") {
                     val qp = Parameters.parseReader(request.reader)
-                    val query = expr_from_json(qp)
+                    val query = expr_from_json(qp.getMap("query"))
                     val index_id = qp.getString("index") ?: error("must provide index")
                     val index = this.indexes[index_id] ?: error("no such index=${index_id}")
-                    response.sendJSON(mapper.writeValueAsString(query))
+                    response.sendRawJSON(expr_to_json(index.env.prepare(query)).toString())
                 }
                 "/query" -> if (POST && request.contentType == "application/json") {
                     val qp = Parameters.parseReader(request.reader)

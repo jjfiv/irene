@@ -10,6 +10,7 @@ class CountStats(object):
     df = attr.ib(type=int)
     cl = attr.ib(type=int)
     dc = attr.ib(type=int)
+    
     def average_doc_len(self):
         if self.dc == 0:
             return 0.0
