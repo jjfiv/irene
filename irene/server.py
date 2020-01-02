@@ -31,12 +31,15 @@ class IreneService(object):
     def _url(self, path):
         return self.url + path
     
-    def open(self, name: str, path: str) -> bool:
+    def open(self, name: str, path: str) -> 'IreneIndex':
+        available = self.indexes()
+        if name in available and available[name].path == path:
+            return IreneIndex(self, name)
         response = requests.post(self._url("/open"), data={'name': name, 'path': path})
         if response.ok:
             self.known_open_indexes[name] = path
-            return True
-        return False
+            return IreneIndex(self, name)
+        raise ValueError('{0}: {1}'.format(response.reason))
     
     def tokenize(self, index: str, text: str, field: Optional[str] = None) -> List[str]:
         params = {'index': index, 'text': text}
@@ -62,3 +65,20 @@ class IreneService(object):
     
     def config(self, index) -> Dict[str, Any]:
        return requests.get(self._url("/config"), params={'index': index}).json()
+
+@attr.s
+class IreneIndex(object):
+    service = attr.ib(type=IreneService)
+    index = attr.ib(type=str)
+
+    def tokenize(self, text: str, field: Optional[str] = None) -> List[str]:
+        return self.service.tokenize(self.index, text, field)
+    
+    def doc(self, name: str) -> Dict[str, Any]:
+        return self.service.doc(self.index, name)
+
+    def query(self, query: QExpr, depth: int=50) -> QueryResponse:
+        return self.service.query(self.index, query, depth)
+
+    def config(self) -> Dict[str, Any]:
+        return self.service.config(self.index)
