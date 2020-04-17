@@ -1,6 +1,7 @@
 /target/
 /data/
 .idea
+*.egg-info
 *.iml
 *.class
 *.trecrun
@@ -20,3 +21,5 @@ trash
 __pycache__
 .mypy_cache
 /queries
+/build/
+/dist/
