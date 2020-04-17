@@ -45,6 +45,8 @@ fun insertStats(env: RREnv, input: QExpr) = qmap(input) { q ->
         is DirQLExpr -> DirQLExpr(q.trySingleChild, q.mu, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is AbsoluteDiscountingQLExpr -> AbsoluteDiscountingQLExpr(q.trySingleChild, q.delta, q.stats ?: computeCountStats(q.trySingleChild, env).get())
         is BM25Expr -> BM25Expr(q.trySingleChild, b=q.b, k=q.k, stats=q.stats ?: computeCountStats(q.trySingleChild, env).get())
+
+        is RM3Expr -> error("Expansion Models should not be created directly!")
     }
 }
 
@@ -72,7 +74,7 @@ fun computeCountStats(q: QExpr, env: RREnv): CountStatsStrategy {
     return if (q is TextExpr) {
         ExactEnvStats(env, q.text, q.statsField())
     } else if (q is OrderedWindowExpr || q is UnorderedWindowExpr || q is SmallerCountExpr || q is UnorderedWindowCeilingExpr || q is ProxExpr) {
-        val method = env.estimateStats ?: return LazyCountStats(q.deepCopy(), env)
+        val method = env.config.estimateStats ?: return LazyCountStats(q.deepCopy(), env)
         approxStats(env, q, method)
     } else {
         TODO("computeCountStats($q)")

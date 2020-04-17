@@ -35,7 +35,7 @@ class LDocBuilderTest {
                 writer2.commit()
                 writer2.open()
             }.use { fastIndex ->
-                fastIndex.env.indexedBigrams = true
+                fastIndex.env.config.indexedBigrams = true
                 terms.toSet().forEach { ut ->
                     val scs = slowIndex.getStats(ut)
                     val fcs = fastIndex.getStats(ut)

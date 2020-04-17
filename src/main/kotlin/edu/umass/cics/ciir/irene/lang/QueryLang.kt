@@ -4,6 +4,7 @@ import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.scoring.*
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.*
+import org.lemurproject.galago.utility.Parameters
 import java.util.*
 import kotlin.collections.HashSet
 
@@ -52,6 +53,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
         is RequireExpr -> mapper(RequireExpr(qmap(q.cond, mapper), qmap(q.value, mapper)))
         is MustExpr -> mapper(MustExpr(qmap(q.must, mapper), qmap(q.value, mapper)))
         is LongLTE -> mapper(LongLTE(qmap(q.child, mapper), q.threshold))
+        is RM3Expr -> mapper(RM3Expr(qmap(q.child, mapper), q.origWeight, q.fbDocs, q.fbTerms, q.field, q.stopwords))
     }
 }
 
@@ -62,7 +64,7 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
  *
  * @author jfoley.
  */
-sealed class QExpr {
+abstract sealed class QExpr {
     val trySingleChild: QExpr
         get() {
         if (children.size != 1) error("Looked for a child on a node with children: $this")
@@ -75,6 +77,20 @@ sealed class QExpr {
         } else it
     }
     open fun applyEnvironment(env: RREnv) {}
+
+    fun requiresPRF(): Boolean {
+        var requiresPRF = false
+        this.visit {q ->
+            when(q) {
+                is RM3Expr -> {
+                    requiresPRF = true
+                    return@visit
+                }
+                else -> {}
+            }
+        }
+        return requiresPRF
+    }
 
     private fun findLuceneTextNodes(lq: Query, out: HashSet<TextExpr>) {
         when(lq) {
@@ -266,7 +282,7 @@ fun BoolExpr(field: String, desired: Boolean=true): QExpr {
 /**
  * [TextExpr] represent a term [text] inside a [field] smoothed with statistics [stats] derived from [statsField]. By default [field] and [statsField] will be the same, and will be filled with sane defaults if left empty.
  */
-data class TextExpr(var text: String, private var field: String? = null, private var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS) : LeafExpr(), Comparable<TextExpr> {
+data class TextExpr(var text: String, var field: String? = null, var statsField: String? = null, var needed: DataNeeded = DataNeeded.DOCS) : LeafExpr(), Comparable<TextExpr> {
     override fun compareTo(other: TextExpr): Int {
         val cmp = (field ?: "").compareTo(other.field ?: "")
         if (cmp == 0) {
@@ -361,23 +377,23 @@ data class LogValueExpr(override var child: QExpr): SingleChildExpr() {
 
 data class DirQLExpr(override var child: QExpr, var mu: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        this.mu = env.defaultDirichletMu
+        this.mu = env.config.defaultDirichletMu
     }
 }
 data class LinearQLExpr(override var child: QExpr, var lambda: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        this.lambda = env.defaultLinearSmoothingLambda
+        this.lambda = env.config.defaultLinearSmoothingLambda
     }
 }
 data class AbsoluteDiscountingQLExpr(override var child: QExpr, var delta: Double? = null, var stats: CountStats? = null): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        this.delta = env.absoluteDiscountingDelta
+        this.delta = env.config.absoluteDiscountingDelta
     }
 }
 data class BM25Expr(override var child: QExpr, var b: Double? = null, var k: Double? = null, var stats: CountStats? = null, var extractedIDF: Boolean = false): SingleChildExpr() {
     override fun applyEnvironment(env: RREnv) {
-        if (b == null) b = env.defaultBM25b
-        if (k == null) k = env.defaultBM25k
+        if (b == null) b = env.config.defaultBM25b
+        if (k == null) k = env.config.defaultBM25k
     }
 }
 data class CountToScoreExpr(override var child: QExpr): SingleChildExpr() {
@@ -387,3 +403,8 @@ data class BoolToScoreExpr(override var child: QExpr, var trueScore: Double=1.0,
 data class CountToBoolExpr(override var child: QExpr, var gt: Int = 0): SingleChildExpr() {
 }
 
+/** This is a two-pass query node. */
+data class RM3Expr(override var child: QExpr, var origWeight: Double=0.3,
+                   var fbDocs: Int=10, var fbTerms: Int=100,
+                   var field: String? = null, var stopwords: Boolean = true): SingleChildExpr() {
+}

@@ -1,8 +1,14 @@
 package edu.umass.cics.ciir.irene.lang
 
+import edu.umass.cics.ciir.irene.IreneIndex
+import edu.umass.cics.ciir.irene.galago.inqueryStop
+import edu.umass.cics.ciir.irene.ltr.BagOfWords
+import edu.umass.cics.ciir.irene.ltr.RelevanceModel
 import edu.umass.cics.ciir.irene.utils.forAllPairs
 import edu.umass.cics.ciir.irene.utils.forEachSeqPair
 import edu.umass.cics.ciir.irene.utils.mapEachSeqPair
+import gnu.trove.map.hash.TObjectDoubleHashMap
+import org.lemurproject.galago.utility.MathUtils
 
 /**
  *
@@ -132,3 +138,35 @@ fun SmartStop(terms: List<String>, stopwords: Set<String>): List<String> {
     return SumExpr(exprs)
 }
 
+fun ComputeRelevanceModel(env: RREnv, firstPass: QExpr, depth: Int=50, expansionField: String?=null, stopwords: Set<String> = inqueryStop, cache: HashMap<Int, BagOfWords> = HashMap()): RelevanceModel? {
+    val field = expansionField ?: env.defaultField
+    val firstPassResults = env.search(firstPass, depth)
+    if (firstPassResults.isEmpty()) {
+        return null
+    }
+    val norm = MathUtils.logSumExp(firstPassResults.map { it.weight.toDouble() }.toDoubleArray())
+    val weights = TObjectDoubleHashMap<String>()
+
+    for (sdoc in firstPassResults) {
+        // pull document, tokenize, and count up if unseen
+        val docWords = cache.computeIfAbsent(sdoc.doc) { num ->
+            BagOfWords(env.lookupTerms(num, field))
+        }
+        val prior = Math.exp(sdoc.weight - norm)
+        docWords.counts.forEachEntry { term, count ->
+            if (stopwords.contains(term)) {
+                return@forEachEntry true
+            }
+            val p = prior * (count / docWords.length)
+            weights.adjustOrPutValue(term, p, p)
+            true
+        }
+    }
+    return RelevanceModel(weights, expansionField)
+}
+
+fun RelevanceExpansionQ(env: RREnv, firstPass: QExpr, depth: Int=50, origWeight: Double = 0.3, numTerms: Int=100, expansionField: String?=null, stopwords: Set<String> = inqueryStop, cache: HashMap<Int, BagOfWords> = HashMap()): QExpr? {
+    val rm = ComputeRelevanceModel(env, firstPass, depth, expansionField, stopwords, cache) ?: return null
+    val expQ = rm.toQExpr(numTerms)
+    return SumExpr(firstPass.weighted(origWeight), expQ.weighted(1.0 - origWeight))
+}

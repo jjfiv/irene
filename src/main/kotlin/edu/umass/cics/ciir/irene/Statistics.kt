@@ -12,10 +12,9 @@ import org.apache.lucene.search.*
  *
  * @author jfoley.
  */
-data class CountStats(var text: String, val field: String, var cf: Long, var df: Long, var cl: Long, var dc: Long) {
-    constructor(text: String, field: String): this(text, field, 0,0,0,0)
-    constructor(text: String, termStats: TermStatistics?, cstats: CollectionStatistics) : this(text,
-            field=cstats.field(),
+data class CountStats(var source: String, var cf: Long, var df: Long, var cl: Long, var dc: Long) {
+    constructor(text: String, field: String): this("$field:$text", 0,0,0,0)
+    constructor(text: String, termStats: TermStatistics?, cstats: CollectionStatistics) : this("${cstats.field()}:$text",
             cf=termStats?.totalTermFreq() ?: 0,
             df=termStats?.docFreq() ?: 0,
             cl=cstats.sumTotalTermFreq(),
@@ -68,15 +67,14 @@ inline fun <T> List<T>.lazyMinAs(func: (T)->Long): Long? {
 }
 class MinEstimatedCountStats(expr: QExpr, cstats: List<CountStats>): CountStatsStrategy() {
     override fun get(): CountStats = estimatedStats
-    private val estimatedStats = CountStats("Est($expr)",
-            cstats[0].field,
+    private val estimatedStats = CountStats("Min($expr)",
             cstats.lazyMinAs { it.cf }?:0,
             cstats.lazyMinAs { it.df }?:0, cstats[0].cl, cstats[0].dc)
 }
 class ProbEstimatedCountStats(expr: QExpr, cstats: List<CountStats>): CountStatsStrategy() {
     override fun get(): CountStats = estimatedStats
-    private val estimatedStats = CountStats("Est($expr)",
-            cstats[0].field,0,0,cstats[0].cl, cstats[0].dc).apply {
+    private val estimatedStats = CountStats("Prob($expr)",
+            0,0,cstats[0].cl, cstats[0].dc).apply {
         if (cstats.lazyMinAs { it.cf } ?: 0L == 0L) {
             // one term does not exist, all things are zero.
         } else {
@@ -94,7 +92,7 @@ class ProbEstimatedCountStats(expr: QExpr, cstats: List<CountStats>): CountStats
     }
 }
 
-class CountStatsCollectorManager(val start: CountStats) : CollectorManager<CountStatsCollectorManager.CountStatsCollector, CountStats> {
+class CountStatsCollectorManager(val start: CountStats, val field: String) : CollectorManager<CountStatsCollectorManager.CountStatsCollector, CountStats> {
     override fun reduce(collectors: Collection<CountStatsCollector>): CountStats {
         val out = start.copy()
         collectors.forEach {
@@ -128,7 +126,7 @@ class CountStatsCollectorManager(val start: CountStats) : CollectorManager<Count
         }
     }
 
-    override fun newCollector(): CountStatsCollector = CountStatsCollector(start.field)
+    override fun newCollector(): CountStatsCollector = CountStatsCollector(field)
 }
 
 
@@ -156,6 +154,6 @@ object CalculateStatistics {
             fieldBasedStats.dc = maxOf(fstats.dc, fieldBasedStats.dc)
             fieldBasedStats.cl += fstats.cl
         }
-        return searcher.search(query, CountStatsCollectorManager(fieldBasedStats))
+        return searcher.search(query, CountStatsCollectorManager(fieldBasedStats, fields.first()))
     }
 }

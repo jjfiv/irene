@@ -33,5 +33,7 @@ fun createOptimizedMovementExpr(q: QExpr): QExpr = when(q) {
 
     // Don't translate these subtrees, as their names give away their behavior! No point in instantiating them.
     AlwaysMatchLeaf, NeverMatchLeaf -> q
+
+    is RM3Expr -> error("Expansion Models should not be created directly!")
 }
 

@@ -95,7 +95,7 @@ class CommonTestIndexes : Closeable {
             irene = writer.open()
             galago = LocalRetrieval(gMemIndex, pmake { set("flattenCombine", false) })
             env = RRGalagoEnv(galago)
-            env.estimateStats = "exact"
+            env.config.estimateStats = "exact"
         }
     }
 

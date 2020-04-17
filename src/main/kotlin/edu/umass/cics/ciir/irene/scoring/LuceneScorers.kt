@@ -99,7 +99,7 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
     }
 
     private fun termCached(term: Term, needed: DataNeeded): QueryEvalNode {
-        return if (env.shareIterators) {
+        return if (env.config.shareIterators) {
             val entry = iterNeeds[term]
             if (entry == null || entry < needed) {
                 error("Forgot to call .setup(q) on IQContext. While constructing $term $needed $entry...")
@@ -133,7 +133,7 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
     }
 
     fun setup(input: QExpr): QExpr {
-        val foldOperators = if (!env.indexedBigrams) {
+        val foldOperators = if (!env.config.indexedBigrams) {
             input
         } else {
             input.map { q ->
@@ -145,7 +145,7 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
             }
         }
 
-        if (env.shareIterators) {
+        if (env.config.shareIterators) {
             foldOperators.findTextNodes().map { q ->
                 val term = Term(q.countsField(), q.text)
                 val needed = q.needed
@@ -258,7 +258,7 @@ class IreneQueryScorer(val q: QExpr, val iter: OptimizedMovementIter) : Scorer(n
 
 class IreneQueryModel(val index: IreneIndex, val env: IreneQueryLanguage, q: QExpr) : LuceneQuery() {
     val exec = env.prepare(q)
-    var movement = if (env.optimizeMovement) {
+    var movement = if (env.config.optimizeMovement) {
         val m = env.prepare(createOptimizedMovementExpr(exec))
         m
     } else {

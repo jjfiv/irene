@@ -89,6 +89,11 @@ fun List<Double>.normalize(): List<Double> {
     val norm = this.sum()
     return this.map { v -> v/norm }
 }
+fun List<Double>.maxmin(): List<Double> {
+    val stats = this.computeStats()
+    val spread = stats.max - stats.min
+    return this.map { v -> (v - stats.min) / spread }
+}
 
 fun <T> Collection<T>.pfor(doFn: (T)->Unit) {
     this.parallelStream().forEach(doFn)

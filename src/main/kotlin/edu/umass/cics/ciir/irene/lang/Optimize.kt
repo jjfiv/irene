@@ -168,6 +168,8 @@ fun combineWeights(input: QExpr, ctx: CombineWeightsFixedPoint): QExpr = qmap(in
         is UnorderedWindowCeilingExpr,
         is UnorderedWindowExpr,
         is WhitelistMatchExpr -> q
+
+        is RM3Expr -> error("Expansion Models should not be created directly!")
     }
 }
 
@@ -189,7 +191,7 @@ fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
         is LongLTE,
         is WhitelistMatchExpr, AlwaysMatchLeaf, NeverMatchLeaf, is MultiExpr -> childNeeds
         is LuceneExpr, is SynonymExpr -> childNeeds
-        is LogValueExpr, is WeightExpr, is CombineExpr, is MultExpr, is MaxExpr -> {
+        is RM3Expr, is LogValueExpr, is WeightExpr, is CombineExpr, is MultExpr, is MaxExpr -> {
             DataNeeded.SCORES
         }
         is UnorderedWindowCeilingExpr, is SmallerCountExpr -> {
@@ -222,6 +224,7 @@ fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
         is ConstScoreExpr -> return assert(needed == DataNeeded.SCORES)
         is ConstCountExpr -> return assert(needed == DataNeeded.COUNTS || needed == DataNeeded.DOCS)
         is ConstBoolExpr -> return assert(needed == DataNeeded.DOCS)
+
     }
     q.children.forEach { analyzeDataNeededRecursive(it, childNeeds) }
 }
@@ -277,5 +280,7 @@ fun reduceSingleChildren(q: QExpr): QExpr = when(q) {
     is LongLTE,
     is MustExpr,
     is RequireExpr -> q
+
+    is RM3Expr -> error("Expansion Models should not be created directly!")
 }
 
