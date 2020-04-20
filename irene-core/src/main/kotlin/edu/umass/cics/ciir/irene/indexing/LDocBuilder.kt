@@ -160,10 +160,5 @@ class LDocBuilder(val params: IndexParams) {
         }
         fields[field] = listOf(StoredField(field, data))
     }
-    fun setTimeField(field: String, ldt: LocalDateTime?, stored: Boolean=true) {
-        if(ldt == null) return
-        // Default to UTC if given a local-date-time.
-        error("TODO")
-    }
 
 }

@@ -157,6 +157,6 @@ fun parseFromGalago(input: String, config: Parameters? = null): QExpr {
     return galagoToIrene(transformed)
 }
 
-fun main(args: Array<String>) {
+fun main() {
     println("parseFromGalago ${parseFromGalago("#sdm(to.title be or not to be)")}")
 }

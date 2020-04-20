@@ -1,7 +1,5 @@
 package edu.umass.cics.ciir.irene.indexing
 
-import edu.umass.cics.ciir.irene.IreneIndexer
-import edu.umass.cics.ciir.irene.galago.getStr
 import org.junit.Assert.assertEquals
 import org.junit.Assert.fail
 import org.junit.Test
@@ -25,10 +23,10 @@ class IteratorTokenStreamTest {
             indexer.commit()
             indexer.open().use { index ->
                 val internal = index.documentById("testDoc") ?: return fail("Document not indexed.")
-                val fields = index.docAsParameters(internal) ?: return fail("Document not stored.")
+                val fields = index.docAsMap(internal) ?: return fail("Document not stored.")
 
-                assertEquals("testDoc", fields.getStr("id"))
-                assertEquals(rawText, fields.getStr("body"))
+                assertEquals("testDoc", fields["id"])
+                assertEquals(rawText, fields["body"])
                 val cstats = index.getStats("abc")
 
                 assertEquals(1, cstats.df)

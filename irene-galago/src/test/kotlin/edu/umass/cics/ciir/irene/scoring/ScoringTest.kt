@@ -2,8 +2,8 @@ package edu.umass.cics.ciir.irene.scoring
 
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
-import edu.umass.cics.ciir.irene.IreneIndexer
 import edu.umass.cics.ciir.irene.galago.*
+import edu.umass.cics.ciir.irene.indexing.IreneIndexer
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.ltr.toRRExpr
@@ -29,24 +29,22 @@ fun <T> MutableMap<T,Int>.incr(x: T, amt: Int=1) {
 }
 
 class CommonTestIndexes : Closeable {
-    val doc1 = "the quick brown fox jumped over the lazy dog";
-    val doc2 = "language modeling is the best";
-    val doc3 = "the fox jumped the language of the brown dog";
+    private val doc1 = "the quick brown fox jumped over the lazy dog";
+    private val doc2 = "language modeling is the best";
+    private val doc3 = "the fox jumped the language of the brown dog";
 
-    val idField = "id"
-    val docNumberField = "docNo"
     // This is Galago's default field name, which is required if we want to share stats / prepare with one and execute with the other.
-    val contentsField = "document"
+    private val contentsField = "document"
 
-    val docs = listOf(doc1,doc2,doc3)
+    private val docs = listOf(doc1,doc2,doc3)
     val names = ArrayList<String>()
     val ND: Int get() = names.size
-    val gMemIndex = MemoryIndex(pmake {
+    private val gMemIndex = MemoryIndex(pmake {
         set("nonstemming", false)
         set("corpus", true)
     })
     val ltrIndex = ArrayList<LTRDoc>()
-    val df = HashMap<String, Int>()
+    private val df = HashMap<String, Int>()
     val terms = HashSet<String>()
     val tokenVectors = ArrayList<List<String>>()
 
@@ -130,7 +128,7 @@ class ScoringTest {
     }
 
     val EPSILON = 0.0001
-    inline fun dblEquals(x: Double, y: Double, orElse: ()->Unit) {
+    private inline fun dblEquals(x: Double, y: Double, orElse: ()->Unit) {
        if (Math.abs(x-y) > EPSILON) {
            orElse()
            Assert.assertEquals(x, y, EPSILON)
@@ -218,7 +216,7 @@ class ScoringTest {
         }
     }
 
-    fun cmpResults(str: String, gq: GExpr, iq: QExpr, index: CommonTestIndexes) {
+    private fun cmpResults(str: String, gq: GExpr, iq: QExpr, index: CommonTestIndexes) {
         val search = index.irene.search(iq, index.ND)
         val gres = index.galago.transformAndExecuteQuery(gq, pmake {
             set("processingModel", "rankeddocument")
@@ -346,7 +344,7 @@ class ScoringTest {
                 val expected = sameDoc.score
                 val actual = rrScores[name]!!
                 dblEquals(expected, actual) {
-                    println("$name")
+                    println(name)
                     println(sameDoc.annotation)
                     println(rrExpr.explain(index.ltrIndex.find { it.name == name }!!))
                 }

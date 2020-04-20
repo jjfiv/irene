@@ -2,7 +2,6 @@ package edu.umass.cics.ciir.irene.indexing
 
 import edu.umass.cics.ciir.irene.utils.forAllPairs
 import edu.umass.cics.ciir.irene.IndexParams
-import edu.umass.cics.ciir.irene.IreneIndexer
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.tokenize
 import org.junit.Assert.assertEquals

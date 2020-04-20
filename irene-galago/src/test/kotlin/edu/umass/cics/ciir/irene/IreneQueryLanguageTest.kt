@@ -13,13 +13,13 @@ class IreneQueryLanguageTest {
     fun weightCombineTest() {
         val before = WeightExpr(WeightExpr(TextExpr("test"), 0.5), 2.0)
         val after = WeightExpr(TextExpr("test"), 1.0)
-        Assert.assertEquals(after, simplify(before))
+        assertEquals(after, simplify(before))
     }
     @Test
     fun manyWeightCombineTest() {
         val before = TextExpr("test").weighted(0.5).weighted(2.0).weighted(2.0).weighted(2.0)
         val after = WeightExpr(TextExpr("test"), 4.0)
-        Assert.assertEquals(after, simplify(before))
+        assertEquals(after, simplify(before))
     }
     @Test
     fun meanExprGivesEvenWeights() {
@@ -29,8 +29,8 @@ class IreneQueryLanguageTest {
         val opt1 = simplify(MeanExpr(a, b))
         val opt2 = simplify(SumExpr(a.weighted(0.5), b.weighted(0.5)))
         val expected = CombineExpr(listOf(a, b), listOf(0.5, 0.5))
-        Assert.assertEquals(expected, opt1)
-        Assert.assertEquals(expected, opt2)
+        assertEquals(expected, opt1)
+        assertEquals(expected, opt2)
     }
 
     @Test
@@ -39,7 +39,7 @@ class IreneQueryLanguageTest {
         val b = TextExpr("b")
         val opt = simplify(MeanExpr(a.weighted(2.0), b).weighted(0.5))
         val expected = CombineExpr(listOf(a, b), listOf(0.5, 0.25))
-        Assert.assertEquals(expected, opt)
+        assertEquals(expected, opt)
     }
     @Test
     fun complexSimplify() {
@@ -54,7 +54,7 @@ class IreneQueryLanguageTest {
         // 0.5 * a + 0.75 * b + 0.5 * c
         val out = simplify(input)
 
-        Assert.assertEquals(CombineExpr(listOf(a, b, c), listOf(0.5, 0.75, 0.5)), out)
+        assertEquals(CombineExpr(listOf(a, b, c), listOf(0.5, 0.75, 0.5)), out)
     }
 
     @Test
@@ -66,9 +66,9 @@ class IreneQueryLanguageTest {
         val expr = AndExpr(listOf(a, b, c))
         analyzeDataNeededRecursive(expr, DataNeeded.DOCS)
 
-        Assert.assertEquals(DataNeeded.DOCS, a.needed)
-        Assert.assertEquals(DataNeeded.DOCS, b.needed)
-        Assert.assertEquals(DataNeeded.DOCS, c.needed)
+        assertEquals(DataNeeded.DOCS, a.needed)
+        assertEquals(DataNeeded.DOCS, b.needed)
+        assertEquals(DataNeeded.DOCS, c.needed)
     }
 
     @Test
@@ -90,15 +90,15 @@ class IreneQueryLanguageTest {
         val b = TextExpr("b")
         val bigram = OrderedWindowExpr(listOf(a, b))
         analyzeDataNeededRecursive(bigram)
-        Assert.assertEquals(DataNeeded.POSITIONS, a.needed)
-        Assert.assertEquals(DataNeeded.POSITIONS, b.needed)
+        assertEquals(DataNeeded.POSITIONS, a.needed)
+        assertEquals(DataNeeded.POSITIONS, b.needed)
 
         // Calculation should not change if used in a score.
         val b2 = DirQLExpr(OrderedWindowExpr(listOf(a, b)))
 
         analyzeDataNeededRecursive(b2)
-        Assert.assertEquals(DataNeeded.POSITIONS, a.needed)
-        Assert.assertEquals(DataNeeded.POSITIONS, b.needed)
+        assertEquals(DataNeeded.POSITIONS, a.needed)
+        assertEquals(DataNeeded.POSITIONS, b.needed)
     }
 
     @Test
@@ -107,8 +107,8 @@ class IreneQueryLanguageTest {
         val b = TextExpr("b")
         val bigram = MeanExpr(listOf(DirQLExpr(a), BM25Expr(b)))
         analyzeDataNeededRecursive(bigram)
-        Assert.assertEquals(DataNeeded.COUNTS, a.needed)
-        Assert.assertEquals(DataNeeded.COUNTS, b.needed)
+        assertEquals(DataNeeded.COUNTS, a.needed)
+        assertEquals(DataNeeded.COUNTS, b.needed)
     }
 
     @Test

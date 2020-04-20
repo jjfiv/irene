@@ -15,7 +15,7 @@ import org.apache.lucene.search.*
  *
  * @author jfoley.
  */
-abstract sealed class QExpr {
+sealed class QExpr {
     val trySingleChild: QExpr
         get() {
             if (children.size != 1) error("Looked for a child on a node with children: $this")

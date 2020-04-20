@@ -1,6 +1,6 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.IreneIndexer
+import edu.umass.cics.ciir.irene.indexing.IreneIndexer
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.apache.lucene.search.ScoreDoc
 import org.junit.Assert
