@@ -1,6 +1,9 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.*
+import edu.umass.cics.ciir.irene.EmptyIndex
+import edu.umass.cics.ciir.irene.IIndex
+import edu.umass.cics.ciir.irene.IreneIndex
+import edu.umass.cics.ciir.irene.IreneWeightedDoc
 import org.apache.lucene.queryparser.classic.QueryParser
 
 /**
@@ -26,10 +29,9 @@ class IreneQueryLanguage(val index: IIndex = EmptyIndex()) : RREnv() {
     }
 
     override fun lookupTerms(doc: Int, field: String): List<String> =
-        index.terms(doc, field)
+            index.terms(doc, field)
 
 
     val luceneQueryParser: QueryParser
         get() = QueryParser(defaultField, (index as IreneIndex).analyzer)
 }
-

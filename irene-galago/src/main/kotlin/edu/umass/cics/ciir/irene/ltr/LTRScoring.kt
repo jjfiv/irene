@@ -1,11 +1,7 @@
 package edu.umass.cics.ciir.irene.ltr
 
-import edu.umass.cics.ciir.irene.DataNeeded
-import edu.umass.cics.ciir.irene.GenericTokenizer
-import edu.umass.cics.ciir.irene.IIndex
-import edu.umass.cics.ciir.irene.WhitespaceTokenizer
+import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.lang.LuceneQuery
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.*
@@ -84,7 +80,6 @@ data class LTRTokenizedDocField(override val name: String, override val terms: L
     override val termSet: Set<String> get() = freqs.counts.keySet()
 }
 
-
 interface ILTRDoc {
     val name: String
     fun field(field: String): ILTRDocField
@@ -92,6 +87,8 @@ interface ILTRDoc {
     fun freqs(field: String): LanguageModel<String>
     fun hasField(field: String): Boolean
 }
+
+fun ScoringEnv.ltr() = (this as LTRDocScoringEnv).ltr
 
 /**
  * Lazy implementation of [ILTRDoc] based upon [ILTRDocField].
@@ -135,7 +132,7 @@ data class LTRDoc(override val name: String, val fields: Map<String, ILTRDocFiel
     }
 }
 
-data class LTRDocScoringEnv(override val ltr: ILTRDoc) : ScoringEnv(ltr.name.hashCode()) {
+data class LTRDocScoringEnv(val ltr: ILTRDoc) : ScoringEnv(ltr.name.hashCode()) {
     override fun toString(): String {
         return "LTRDocScoringEnv(${ltr.name}, $doc)"
     }
@@ -169,14 +166,14 @@ abstract class LTRDocFeatureNode : QueryEvalNode {
 }
 
 data class LTRDocLength(val field: String) : CountEvalNode, LTRDocFeatureNode() {
-    override fun count(env: ScoringEnv): Int = env.ltr.field(field).length
-    override fun matches(env: ScoringEnv): Boolean = env.ltr.hasField(field)
+    override fun count(env: ScoringEnv): Int = env.ltr().field(field).length
+    override fun matches(env: ScoringEnv): Boolean = env.ltr().hasField(field)
 }
 
 data class LTRDocTerm(val field: String, val term: String): PositionsEvalNode, LTRDocFeatureNode() {
     var cache: Pair<String, IntArray>? = null
     override fun positions(env: ScoringEnv): PositionsIter {
-        val doc = env.ltr
+        val doc = env.ltr()
         val c = cache
         if (c != null && doc.name == c.first) {
             return PositionsIter(c.second)
@@ -189,7 +186,7 @@ data class LTRDocTerm(val field: String, val term: String): PositionsEvalNode, L
         cache = Pair(doc.name, hits)
         return PositionsIter(hits)
     }
-    override fun count(env: ScoringEnv): Int = env.ltr.field(field).count(term)
+    override fun count(env: ScoringEnv): Int = env.ltr().field(field).count(term)
     override fun matches(env: ScoringEnv): Boolean = count(env) > 0
     override fun explain(env: ScoringEnv): Explanation = if (matches(env)) {
         Explanation.match(score(env).toFloat(), "${this.javaClass.simpleName} count=${count(env)} score=${score(env)} matches=${matches(env)} positions=${positions(env)}")

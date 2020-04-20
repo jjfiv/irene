@@ -3,6 +3,7 @@ package edu.umass.cics.ciir.irene.ltr
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.QueryEvalNode
+import edu.umass.cics.ciir.irene.scoring.exprToEval
 import edu.umass.cics.ciir.irene.utils.computeEntropy
 import edu.umass.cics.ciir.irene.utils.mean
 import org.apache.lucene.search.Explanation
@@ -17,8 +18,11 @@ sealed class RRExpr(val env: RREnv) {
     open fun explain(doc: ILTRDoc): Explanation = Explanation.match(eval(doc).toFloat(), "RRExpr:${this.javaClass.simpleName}")
 }
 
+//val ltrContext = LTREvalSetupContext(this)
+fun makeLTRQuery(env: RREnv, q: QExpr) = exprToEval(env.prepare(q), LTREvalSetupContext(env))
+
 class RREvalNodeExpr(env: RREnv, val node: QueryEvalNode) : RRLeafExpr(env) {
-    constructor(env: RREnv, q: QExpr) : this(env, env.makeLTRQuery(q))
+    constructor(env: RREnv, q: QExpr) : this(env, makeLTRQuery(env, q))
     override fun eval(doc: ILTRDoc): Double {
         val scoreEnv = LTRDocScoringEnv(doc)
         return node.score(scoreEnv)

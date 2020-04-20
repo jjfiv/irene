@@ -1,6 +1,5 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.pmake
 import org.lemurproject.galago.utility.Parameters

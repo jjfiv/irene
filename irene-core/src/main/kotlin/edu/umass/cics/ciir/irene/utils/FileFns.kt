@@ -1,6 +1,5 @@
 package edu.umass.cics.ciir.irene.utils
 
-import org.lemurproject.galago.utility.StreamCreator
 import java.io.*
 
 /**
@@ -21,8 +20,8 @@ fun File.ensureParentDirectories(): Boolean {
 }
 fun OutputStream.printer(): PrintWriter = PrintWriter(OutputStreamWriter(this, Charsets.UTF_8))
 fun InputStream.reader(): BufferedReader = BufferedReader(InputStreamReader(this, Charsets.UTF_8))
-fun File.smartReader() = StreamCreator.openInputStream(this).bufferedReader()
-fun File.smartPrinter() = StreamCreator.openOutputStream(this).printer()
+fun File.smartReader() = openInputStream(this).bufferedReader()
+fun File.smartPrinter() = openOutputStream(this).printer()
 inline fun <T> File.smartLines(block: (Sequence<String>)->T): T = smartReader().useLines(block)
 fun File.smartDoLines(doProgress: Boolean=false, limit: Int? = null,  total: Long? = null, handler: (String)->Unit) {
     val msg = Debouncer()
@@ -46,8 +45,8 @@ fun File.smartDoLines(doProgress: Boolean=false, limit: Int? = null,  total: Lon
         println(msg.estimate(done, done))
     }
 }
-fun File.smartWriter() = StreamCreator.openOutputStream(this).buffered()
-fun File.smartPrint(block: (PrintWriter)->Unit) = StreamCreator.openOutputStream(this).printer().use(block)
+fun File.smartWriter() = openOutputStream(this).buffered()
+fun File.smartPrint(block: (PrintWriter)->Unit) = openOutputStream(this).printer().use(block)
 
 /**
  * This is an ugly hack because maven works but intellij doesn't right now.
@@ -56,9 +55,9 @@ fun inputStreamOrNull(path: String): InputStream? {
     val smr = File("src/main/resources/", path)
     val str = File("src/test/resources/", path)
     if (smr.exists()) {
-        return StreamCreator.openInputStream(smr)
+        return openInputStream(smr)
     } else if(str.exists()) {
-        return StreamCreator.openInputStream(str)
+        return openInputStream(str)
     }
     return null
 }

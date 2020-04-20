@@ -1,6 +1,6 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.*
+import edu.umass.cics.ciir.irene.lucene.*
 
 /**
  * Someday make this two-passes. For now, depend on the cache in the index to make it fast-enough.

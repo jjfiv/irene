@@ -34,6 +34,8 @@ tasks.withType(JavaCompile) {
 }
 
 dependencies {
+  implementation group: "com.github.ben-manes.caffeine", name: "caffeine", version: "2.8.1"
+  implementation group: "net.sf.trove4j", name: "trove4j", version: "3.0.3"
   implementation group: 'org.roaringbitmap', name: 'RoaringBitmap', version: '0.6.39'
   implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.0'
   implementation group: 'org.apache.lucene', name: 'lucene-core', version: luceneVersion

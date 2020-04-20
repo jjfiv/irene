@@ -82,7 +82,6 @@ object RankingMeasures {
       } else {
         false_pos++;
       }
-      val N = i+1;
       true_pos_rate[i] = true_pos / total_true_pos.toDouble();
       false_pos_rate[i] = false_pos / total_false_pos.toDouble();
     }

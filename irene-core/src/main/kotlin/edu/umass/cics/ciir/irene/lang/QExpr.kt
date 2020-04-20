@@ -1,63 +1,12 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.DataNeeded
-import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
+import edu.umass.cics.ciir.irene.LuceneQuery
 import edu.umass.cics.ciir.irene.indexing.BoolField
 import edu.umass.cics.ciir.irene.lucene_try
-import edu.umass.cics.ciir.irene.scoring.MustEval
-import edu.umass.cics.ciir.irene.scoring.RequireEval
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.*
 
-typealias LuceneQuery = org.apache.lucene.search.Query
-
-/**
- * Apply a mapping function ([mapper]) to all nodes in this query ([q]), building a new query with the output nodes ([QExpr]).
- */
-fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
-    return when (q) {
-    // LeafExpr:
-        is LengthsExpr,
-        is TextExpr,
-        is LuceneExpr,
-        is WhitelistMatchExpr,
-        AlwaysMatchLeaf,
-        NeverMatchLeaf,
-        is ConstBoolExpr,
-        is ConstScoreExpr,
-        is DenseLongField,
-        is DenseFloatField,
-        is ConstCountExpr -> mapper(q)
-
-        is MultiExpr -> mapper(MultiExpr(q.namedExprs.mapValues { (_, v) -> qmap(v, mapper) }))
-        is SynonymExpr -> mapper(SynonymExpr(q.children.map { qmap(it, mapper) }))
-        is AndExpr -> mapper(AndExpr(q.children.map { qmap(it, mapper) }))
-        is OrExpr -> mapper(OrExpr(q.children.map { qmap(it, mapper) }))
-        is CombineExpr -> mapper(CombineExpr(q.children.map { qmap(it, mapper) }, q.weights.toList()))
-        is MultExpr -> mapper(MultExpr(q.children.map { qmap(it, mapper) }))
-        is MaxExpr -> mapper(MaxExpr(q.children.map { qmap(it, mapper) }))
-        is SmallerCountExpr -> mapper(SmallerCountExpr(q.children.map { qmap(it, mapper) }))
-        is UnorderedWindowCeilingExpr -> mapper(UnorderedWindowCeilingExpr(q.children.map { qmap(it, mapper) }, q.width))
-        is OrderedWindowExpr -> mapper(OrderedWindowExpr(q.children.map { qmap(it, mapper) }, q.step))
-        is UnorderedWindowExpr -> mapper(UnorderedWindowExpr(q.children.map { qmap(it, mapper) }, q.width))
-        is ProxExpr -> mapper(ProxExpr(q.children.map { qmap(it, mapper) }, q.width))
-        is LogValueExpr -> mapper(LogValueExpr(qmap(q.child, mapper)))
-        is WeightExpr -> mapper(WeightExpr(qmap(q.child, mapper), q.weight))
-        is CountEqualsExpr -> mapper(CountEqualsExpr(qmap(q.child, mapper), q.target))
-        is DirQLExpr -> mapper(DirQLExpr(qmap(q.child, mapper), q.mu, q.stats))
-        is LinearQLExpr -> mapper(LinearQLExpr(qmap(q.child, mapper), q.lambda, q.stats))
-        is AbsoluteDiscountingQLExpr -> mapper(AbsoluteDiscountingQLExpr(qmap(q.child, mapper), q.delta, q.stats))
-        is BM25Expr -> mapper(BM25Expr(qmap(q.child, mapper), q.b, q.k, q.stats, q.extractedIDF))
-        is CountToScoreExpr -> mapper(CountToScoreExpr(qmap(q.child, mapper)))
-        is BoolToScoreExpr -> mapper(BoolToScoreExpr(qmap(q.child, mapper)))
-        is CountToBoolExpr -> mapper(CountToBoolExpr(qmap(q.child, mapper)))
-        is RequireExpr -> mapper(RequireExpr(qmap(q.cond, mapper), qmap(q.value, mapper)))
-        is MustExpr -> mapper(MustExpr(qmap(q.must, mapper), qmap(q.value, mapper)))
-        is LongLTE -> mapper(LongLTE(qmap(q.child, mapper), q.threshold))
-        is RM3Expr -> mapper(RM3Expr(qmap(q.child, mapper), q.origWeight, q.fbDocs, q.fbTerms, q.field, q.stopwords))
-    }
-}
 
 /**
  * [QExpr] is the base class for our typed inquery-like query language. Nodes  have [children], and can be [visit]ed, but they are also strongly typed, and can [deepCopy] themselves.
@@ -69,9 +18,9 @@ fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
 abstract sealed class QExpr {
     val trySingleChild: QExpr
         get() {
-        if (children.size != 1) error("Looked for a child on a node with children: $this")
-        return children[0]
-    }
+            if (children.size != 1) error("Looked for a child on a node with children: $this")
+            return children[0]
+        }
     abstract val children: List<QExpr>
     fun deepCopy(): QExpr = map {
         if (it is LeafExpr) {
@@ -409,4 +358,51 @@ data class CountToBoolExpr(override var child: QExpr, var gt: Int = 0): SingleCh
 data class RM3Expr(override var child: QExpr, var origWeight: Double=0.3,
                    var fbDocs: Int=10, var fbTerms: Int=100,
                    var field: String? = null, var stopwords: Boolean = true): SingleChildExpr() {
+}
+
+/**
+ * Apply a mapping function ([mapper]) to all nodes in this query ([q]), building a new query with the output nodes ([QExpr]).
+ */
+fun qmap(q: QExpr, mapper: (QExpr)->QExpr): QExpr {
+    return when (q) {
+        // LeafExpr:
+        is LengthsExpr,
+        is TextExpr,
+        is LuceneExpr,
+        is WhitelistMatchExpr,
+        AlwaysMatchLeaf,
+        NeverMatchLeaf,
+        is ConstBoolExpr,
+        is ConstScoreExpr,
+        is DenseLongField,
+        is DenseFloatField,
+        is ConstCountExpr -> mapper(q)
+
+        is MultiExpr -> mapper(MultiExpr(q.namedExprs.mapValues { (_, v) -> qmap(v, mapper) }))
+        is SynonymExpr -> mapper(SynonymExpr(q.children.map { qmap(it, mapper) }))
+        is AndExpr -> mapper(AndExpr(q.children.map { qmap(it, mapper) }))
+        is OrExpr -> mapper(OrExpr(q.children.map { qmap(it, mapper) }))
+        is CombineExpr -> mapper(CombineExpr(q.children.map { qmap(it, mapper) }, q.weights.toList()))
+        is MultExpr -> mapper(MultExpr(q.children.map { qmap(it, mapper) }))
+        is MaxExpr -> mapper(MaxExpr(q.children.map { qmap(it, mapper) }))
+        is SmallerCountExpr -> mapper(SmallerCountExpr(q.children.map { qmap(it, mapper) }))
+        is UnorderedWindowCeilingExpr -> mapper(UnorderedWindowCeilingExpr(q.children.map { qmap(it, mapper) }, q.width))
+        is OrderedWindowExpr -> mapper(OrderedWindowExpr(q.children.map { qmap(it, mapper) }, q.step))
+        is UnorderedWindowExpr -> mapper(UnorderedWindowExpr(q.children.map { qmap(it, mapper) }, q.width))
+        is ProxExpr -> mapper(ProxExpr(q.children.map { qmap(it, mapper) }, q.width))
+        is LogValueExpr -> mapper(LogValueExpr(qmap(q.child, mapper)))
+        is WeightExpr -> mapper(WeightExpr(qmap(q.child, mapper), q.weight))
+        is CountEqualsExpr -> mapper(CountEqualsExpr(qmap(q.child, mapper), q.target))
+        is DirQLExpr -> mapper(DirQLExpr(qmap(q.child, mapper), q.mu, q.stats))
+        is LinearQLExpr -> mapper(LinearQLExpr(qmap(q.child, mapper), q.lambda, q.stats))
+        is AbsoluteDiscountingQLExpr -> mapper(AbsoluteDiscountingQLExpr(qmap(q.child, mapper), q.delta, q.stats))
+        is BM25Expr -> mapper(BM25Expr(qmap(q.child, mapper), q.b, q.k, q.stats, q.extractedIDF))
+        is CountToScoreExpr -> mapper(CountToScoreExpr(qmap(q.child, mapper)))
+        is BoolToScoreExpr -> mapper(BoolToScoreExpr(qmap(q.child, mapper)))
+        is CountToBoolExpr -> mapper(CountToBoolExpr(qmap(q.child, mapper)))
+        is RequireExpr -> mapper(RequireExpr(qmap(q.cond, mapper), qmap(q.value, mapper)))
+        is MustExpr -> mapper(MustExpr(qmap(q.must, mapper), qmap(q.value, mapper)))
+        is LongLTE -> mapper(LongLTE(qmap(q.child, mapper), q.threshold))
+        is RM3Expr -> mapper(RM3Expr(qmap(q.child, mapper), q.origWeight, q.fbDocs, q.fbTerms, q.field, q.stopwords))
+    }
 }

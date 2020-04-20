@@ -1,7 +1,7 @@
 package edu.umass.cics.ciir.irene.galago
 
-import edu.umass.cics.ciir.irene.CountStats
 import edu.umass.cics.ciir.irene.IreneWeightedDoc
+import edu.umass.cics.ciir.irene.lang.CountStats
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.utils.IntList

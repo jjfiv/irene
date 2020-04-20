@@ -1,11 +1,5 @@
 package edu.umass.cics.ciir.irene.utils
 
-import org.lemurproject.galago.utility.Parameters
-
-/**
- * @author jfoley
- */
-
 /**
  * Ideas taken from:
  * http://www.johndcook.com/blog/standard_deviation/
@@ -148,15 +142,56 @@ data class ComputedStats(val mean: Double, val min: Double, val max: Double, val
                 Pair("min", min),
                 Pair("total", total),
                 Pair("count", count))
-
-    fun toFeatures(prefix: String? = null): Parameters {
-        return if (prefix != null) {
-            Parameters.wrap(features.mapKeys { (k,_) -> "$prefix$k" })
-        } else {
-            Parameters.wrap(features)
-        }
-    }
 }
 
 fun safeDiv(x: Int, y: Int): Double = if (x == 0 || y == 0) 0.0 else x.toDouble() / y.toDouble()
 
+/**
+ * Computes the weighted average of scores: -> log( w0 * exp(score[0]) + w1 *
+ * exp(score[1]) + w1 * exp(score[2]) + .. )
+ *
+ * to avoid rounding errors, we compute the equivalent expression:
+ *
+ * returns: maxScore + log( w0 * exp(score[0] - max) + w1 * exp(score[1] -
+ * max) + w2 * exp(score[2] - max) + .. )
+ */
+fun weightedLogSumExp(weights: DoubleArray, scores: DoubleArray): Double {
+    if (scores.size == 0) {
+        throw RuntimeException("weightedLogSumExp was called with a zero length array of scores.")
+    }
+
+    // find max value - this score will dominate the final score
+    var max = Double.NEGATIVE_INFINITY
+    for (score in scores) {
+        max = Math.max(score, max)
+    }
+    var sum = 0.0
+    for (i in scores.indices) {
+        sum += weights[i] * Math.exp(scores[i] - max)
+    }
+    sum = max + Math.log(sum)
+    return sum
+}
+
+/**
+ * Computes the sum of scores: -> log( exp(score[0]) + exp(score[1]) + exp(score[2]) + .. )
+ *
+ * to avoid rounding errors, we compute the equivalent expression:
+ *
+ * returns: maxScore + log( exp(score[0] - max) + exp(score[1] -
+ * max) + exp(score[2] - max) + .. )
+ */
+fun logSumExp(scores: DoubleArray): Double {
+    if (scores.isEmpty()) {
+        throw RuntimeException("logSumExp was called with a zero length array of scores.")
+    }
+
+    // find max value - this score will dominate the final score
+    val max = scores.max() ?: Double.NEGATIVE_INFINITY
+    var sum = 0.0
+    for (i in scores.indices) {
+        sum += Math.exp(scores[i] - max)
+    }
+    sum = max + Math.log(sum)
+    return sum
+}

@@ -1,13 +1,9 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.ltr.BagOfWords
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel
-import edu.umass.cics.ciir.irene.utils.forAllPairs
-import edu.umass.cics.ciir.irene.utils.forEachSeqPair
-import edu.umass.cics.ciir.irene.utils.mapEachSeqPair
+import edu.umass.cics.ciir.irene.utils.*
 import gnu.trove.map.hash.TObjectDoubleHashMap
-import org.lemurproject.galago.utility.MathUtils
 
 /**
  *
@@ -143,7 +139,7 @@ fun ComputeRelevanceModel(env: RREnv, firstPass: QExpr, depth: Int=50, expansion
     if (firstPassResults.isEmpty()) {
         return null
     }
-    val norm = MathUtils.logSumExp(firstPassResults.map { it.weight.toDouble() }.toDoubleArray())
+    val norm = logSumExp(firstPassResults.map { it.weight.toDouble() }.toDoubleArray())
     val weights = TObjectDoubleHashMap<String>()
 
     for (sdoc in firstPassResults) {
@@ -164,8 +160,3 @@ fun ComputeRelevanceModel(env: RREnv, firstPass: QExpr, depth: Int=50, expansion
     return RelevanceModel(weights, expansionField)
 }
 
-fun RelevanceExpansionQ(env: RREnv, firstPass: QExpr, depth: Int=50, origWeight: Double = 0.3, numTerms: Int=100, expansionField: String?=null, stopwords: Set<String> = inqueryStop, cache: HashMap<Int, BagOfWords> = HashMap()): QExpr? {
-    val rm = ComputeRelevanceModel(env, firstPass, depth, expansionField, stopwords, cache) ?: return null
-    val expQ = rm.toQExpr(numTerms)
-    return SumExpr(firstPass.weighted(origWeight), expQ.weighted(1.0 - origWeight))
-}

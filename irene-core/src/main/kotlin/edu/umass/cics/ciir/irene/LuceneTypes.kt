@@ -11,6 +11,7 @@ typealias IOSystem = org.apache.lucene.store.Directory
 typealias MemoryIO = org.apache.lucene.store.RAMDirectory
 typealias DiskIO = org.apache.lucene.store.FSDirectory
 typealias LDoc = org.apache.lucene.document.Document
+typealias LuceneQuery = org.apache.lucene.search.Query
 
 class RefCountedIO(private val io: IOSystem) : java.io.Closeable
 {

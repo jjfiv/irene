@@ -1,34 +1,19 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.CountStats
+import edu.umass.cics.ciir.irene.EnvConfig
 import edu.umass.cics.ciir.irene.IreneWeightedDoc
-import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.ltr.BagOfWords
-import edu.umass.cics.ciir.irene.ltr.LTREvalSetupContext
-import edu.umass.cics.ciir.irene.scoring.exprToEval
 
-data class EnvConfig(
-    var defaultField: String = "document",
-    var defaultDirichletMu: Double = 1500.0,
-    var defaultLinearSmoothingLambda: Double = 0.8,
-    var defaultBM25b: Double = 0.75,
-    var defaultBM25k: Double = 1.2,
-    var absoluteDiscountingDelta: Double = 0.7,
-    var estimateStats: String? = "min",
-    var optimizeMovement: Boolean = true,
-    var shareIterators: Boolean = true,
-    var optimizeBM25: Boolean = false,
-    var optimizeDirLog: Boolean = false,
-    var indexedBigrams: Boolean = false,
-    var prfStopwords: Set<String> = inqueryStop
-)
-
+/**
+ *
+ * @author jfoley.
+ */
 abstract class RREnv {
     open var config = EnvConfig()
 
     val defaultField: String get() = config.defaultField
-    val ltrContext = LTREvalSetupContext(this)
-    fun makeLTRQuery(q: QExpr) = exprToEval(prepare(q), ltrContext)
+    //val ltrContext = LTREvalSetupContext(this)
+    //fun makeLTRQuery(q: QExpr) = exprToEval(prepare(q), ltrContext)
 
     // nullable so it can be used to determine if this index has the given field.
     abstract fun fieldStats(field: String): CountStats
@@ -90,24 +75,6 @@ abstract class RREnv {
             return simplify(bq)
         } else {
             return simplify(pq)
-        }
-    }
-}
-
-fun doPRFStep(env: RREnv, query: QExpr, cache: HashMap<Int, BagOfWords>): QExpr {
-    return query.map { q ->
-        when(q) {
-            is RM3Expr -> {
-                    if (q.child.requiresPRF()) {
-                        error("QExpr.map should be bottom-up. Did you add a new PRF-QExpr?")
-                    }
-                    RelevanceExpansionQ(env,
-                            q.child, q.fbDocs, q.origWeight, q.fbTerms,
-                            q.field ?: env.defaultField,
-                            if (q.stopwords) { env.config.prfStopwords } else { emptySet() },
-                            cache) ?: error("PRF had no matches: $q")
-                }
-            else -> q
         }
     }
 }

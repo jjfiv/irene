@@ -1,10 +1,7 @@
 package edu.umass.cics.ciir.irene.scoring
 
-import edu.umass.cics.ciir.irene.DataNeeded
-import edu.umass.cics.ciir.irene.IreneIndex
-import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
+import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.lang.*
-import edu.umass.cics.ciir.irene.lucene_try
 import edu.umass.cics.ciir.irene.utils.ComputedStats
 import edu.umass.cics.ciir.irene.utils.IntList
 import edu.umass.cics.ciir.irene.utils.StreamingStats

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.pmake
-import edu.umass.cics.ciir.irene.lang.EnvConfig
 import edu.umass.cics.ciir.irene.lang.expr_from_json
 import edu.umass.cics.ciir.irene.lang.expr_to_json
 import org.lemurproject.galago.tupleflow.web.WebHandler
@@ -95,7 +94,7 @@ class IreneAPIServer(val argp: Parameters) : WebHandler {
                             ?: error("no such index!")
                     val id = request.getParamOrNull("id") ?: error("doc id must be specified")
                     val internal = index.documentById(id) ?: error("No such id!")
-                    response.sendRawJSON(index.docAsParameters(internal).toString())
+                    response.sendJSON(index.docAsMap(internal))
                 }
                 "/prepare" -> if (POST && request.contentType == "application/json") {
                     val qp = Parameters.parseReader(request.reader)
