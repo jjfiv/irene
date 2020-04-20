@@ -10,8 +10,8 @@ import org.junit.Test
 class MoverTest {
     @Test
     fun testAndMovement() {
-        val lhs = IntSetMover(listOf(1,2,7,8))
-        val rhs = IntSetMover(listOf(1,2,8))
+        val lhs = IntSetMover(listOf(1, 2, 7, 8))
+        val rhs = IntSetMover(listOf(1, 2, 8))
 
         val and = AndMover(listOf(lhs, rhs))
         assertEquals(listOf(1, 2,8), and.collectList())
@@ -19,8 +19,8 @@ class MoverTest {
 
     @Test
     fun testAndMovementEmpty() {
-        val lhs = IntSetMover(listOf(10,12,17,18))
-        val rhs = IntSetMover(listOf(1,2,8))
+        val lhs = IntSetMover(listOf(10, 12, 17, 18))
+        val rhs = IntSetMover(listOf(1, 2, 8))
 
         val and = AndMover(listOf(lhs, rhs))
         assertEquals(emptyList<Int>(), and.collectList())
@@ -28,8 +28,8 @@ class MoverTest {
 
     @Test
     fun testOrMovement() {
-        val lhs = IntSetMover(listOf(1,2,7,8))
-        val rhs = IntSetMover(listOf(1,2,8))
+        val lhs = IntSetMover(listOf(1, 2, 7, 8))
+        val rhs = IntSetMover(listOf(1, 2, 8))
 
         val and = OrMover(listOf(lhs, rhs))
         assertEquals(listOf(1, 2, 7, 8), and.collectList())
@@ -37,8 +37,8 @@ class MoverTest {
 
     @Test
     fun testOrMovementDisjoint() {
-        val lhs = IntSetMover(listOf(10,12,17,18))
-        val rhs = IntSetMover(listOf(1,2,8))
+        val lhs = IntSetMover(listOf(10, 12, 17, 18))
+        val rhs = IntSetMover(listOf(1, 2, 8))
 
         val and = OrMover(listOf(lhs, rhs))
         assertEquals(listOf(1,2,8,10,12,17,18), and.collectList())

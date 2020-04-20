@@ -8,6 +8,7 @@ import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
 import edu.umass.cics.ciir.irene.ltr.toRRExpr
 import edu.umass.cics.ciir.irene.tokenize
+import edu.umass.cics.ciir.irene.utils.incr
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
 import org.junit.Assert
 import org.junit.ClassRule
@@ -23,10 +24,6 @@ import java.util.*
 /**
  * @author jfoley.
  */
-
-fun <T> MutableMap<T,Int>.incr(x: T, amt: Int=1) {
-    this.compute(x, { _, prev -> (prev ?: 0) + amt })
-}
 
 class CommonTestIndexes : Closeable {
     private val doc1 = "the quick brown fox jumped over the lazy dog";
@@ -85,7 +82,7 @@ class CommonTestIndexes : Closeable {
 
                     terms.addAll(tokens)
                     tokens.toSet().forEach {
-                        df.incr(it)
+                        df.incr(it, 1)
                     }
                 }
             }
