@@ -23,3 +23,4 @@ __pycache__
 /queries
 /build/
 /dist/
+.gradle
