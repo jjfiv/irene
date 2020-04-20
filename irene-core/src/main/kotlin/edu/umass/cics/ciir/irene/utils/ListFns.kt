@@ -3,7 +3,6 @@ package edu.umass.cics.ciir.irene.utils
 import java.util.*
 import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.TimeUnit
-import kotlin.streams.toList
 
 /**
  * @author jfoley
@@ -103,9 +102,6 @@ fun <T> Collection<T>.pforIndividual(doFn: (T)->Unit) {
     while (!pool.awaitQuiescence(1, TimeUnit.SECONDS)) {
         // wait for jobs.
     }
-}
-fun <I,O> Collection<I>.pmap(mapper: (I)->O): List<O> {
-    return this.parallelStream().map { mapper(it) }.toList()
 }
 fun <I,O> Collection<I>.pmapIndividual(pool: ForkJoinPool = ForkJoinPool.commonPool(), mapper: (I)->O): List<O> {
     val output = Vector<O>()

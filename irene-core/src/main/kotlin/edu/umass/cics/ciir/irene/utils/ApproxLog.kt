@@ -1,7 +1,6 @@
 package edu.umass.cics.ciir.irene.utils
 
 import java.util.concurrent.ThreadLocalRandom
-import kotlin.streams.asSequence
 
 /**
  * Based on polynomials in BSD-licensed fastlog.h
@@ -40,7 +39,7 @@ object ApproxLog {
         println("faster_log(0.0)=${faster_log(0.0)}")
 
         (0 until 10).forEach { trial ->
-            val data = ThreadLocalRandom.current().doubles(0.0000001, 0.25).asSequence().take(5_000_000).toList().toDoubleArray()
+            val data = ThreadLocalRandom.current().doubles(0.0000001, 0.25).limit(5_000_000L).toArray()
 
             val (est_time, est_ss) = timed {
                 val ss = StreamingStats()
