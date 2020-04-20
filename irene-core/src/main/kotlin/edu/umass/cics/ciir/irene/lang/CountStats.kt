@@ -1,5 +1,6 @@
 package edu.umass.cics.ciir.irene.lang
 
+import com.fasterxml.jackson.annotation.JacksonAnnotation
 import org.apache.lucene.search.CollectionStatistics
 import org.apache.lucene.search.TermStatistics
 

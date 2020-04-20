@@ -5,8 +5,8 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.pmake
 import edu.umass.cics.ciir.irene.indexing.IndexParams
-import edu.umass.cics.ciir.irene.lang.expr_from_json
-import edu.umass.cics.ciir.irene.lang.expr_to_json
+import edu.umass.cics.ciir.irene.lang.QExpr
+import edu.umass.cics.ciir.irene.lang.QExprModule
 import org.lemurproject.galago.tupleflow.web.WebHandler
 import org.lemurproject.galago.tupleflow.web.WebServer
 import org.lemurproject.galago.utility.Parameters
@@ -14,7 +14,9 @@ import java.io.File
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
 
-val mapper = ObjectMapper().registerKotlinModule()
+val mapper = ObjectMapper()
+        .registerKotlinModule()
+        .registerModule(QExprModule())
 
 fun HttpServletRequest.getParamOrNull(param: String): String? {
     val values = this.getParameterValues(param) ?: return null
@@ -42,6 +44,8 @@ fun HttpServletResponse.sendRawJSON(str: String) {
 data class TokenizeResponse(val terms: List<String>)
 data class DocResponse(val name: String, val score: Float)
 data class QueryResponse(val topdocs: List<DocResponse>, val totalHits: Long)
+data class PrepareRequest(val query: QExpr, val index: String)
+data class QueryRequest(val query: QExpr, val index: String, val depth: Int)
 
 class IreneAPIServer(val argp: Parameters) : WebHandler {
     val indexes = HashMap<String, IreneIndex>()
@@ -98,20 +102,14 @@ class IreneAPIServer(val argp: Parameters) : WebHandler {
                     response.sendJSON(index.docAsMap(internal))
                 }
                 "/prepare" -> if (POST && request.contentType == "application/json") {
-                    val qp = Parameters.parseReader(request.reader)
-                    val query = expr_from_json(qp.getMap("query"))
-                    val index_id = qp.getString("index") ?: error("must provide index")
-                    val index = this.indexes[index_id] ?: error("no such index=${index_id}")
-                    response.sendRawJSON(expr_to_json(index.env.prepare(query)).toString())
+                    val req = mapper.readValue(request.reader, PrepareRequest::class.java)
+                    val index = this.indexes[req.index] ?: error("no such index=${req.index}")
+                    response.sendJSON(index.env.prepare(req.query))
                 }
                 "/query" -> if (POST && request.contentType == "application/json") {
-                    val qp = Parameters.parseReader(request.reader)
-                    // data class QueryRequest(val index: String, val depth: Int, val query: QExpr)
-                    val depth = qp.getInt("depth")
-                    val index_id = qp.getString("index") ?: error("must provide index")
-                    val index = this.indexes[index_id] ?: error("no such index=${index_id}")
-                    val query = expr_from_json(qp.getMap("query"))
-                    val results = index.search(query, depth)
+                    val req = mapper.readValue(request.reader, QueryRequest::class.java)
+                    val index = this.indexes[req.index] ?: error("no such index=${req.index}")
+                    val results = index.search(req.query, req.depth)
                     val docs = results.scoreDocs.map { sdoc ->
                         DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score)
                     }
@@ -131,7 +129,7 @@ class IreneAPIServer(val argp: Parameters) : WebHandler {
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args)
     if (!argp.containsKey("port")) {
-        argp.put("port", 1234)
+        argp.put("port", 4444)
     }
     if (!argp.containsKey("host")) {
         argp.put("host", "localhost")
