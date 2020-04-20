@@ -1,1 +1,3 @@
 rootProject.name = 'irene'
+include "irene-core"
+include "irene-galago"
