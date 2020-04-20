@@ -4,7 +4,6 @@ import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.galago.toQueryResults
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.BagOfWords
-import edu.umass.cics.ciir.irene.openReader
 import edu.umass.cics.ciir.irene.utils.*
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import org.lemurproject.galago.core.eval.QueryResults

@@ -1,14 +1,11 @@
 package edu.umass.cics.ciir.irene.indexing
 
-import edu.umass.cics.ciir.irene.DiskIO
-import edu.umass.cics.ciir.irene.IreneEnglishAnalyzer
-import edu.umass.cics.ciir.irene.MemoryIO
-import edu.umass.cics.ciir.irene.RefCountedIO
+import edu.umass.cics.ciir.irene.*
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.index.IndexWriterConfig
 import java.io.File
-import java.util.HashMap
+import java.util.*
 
 /**
  *
@@ -52,6 +49,6 @@ class IndexParams {
             PerFieldAnalyzerWrapper(defaultAnalyzer, perFieldAnalyzers)
         }
 
-    //fun openReader() = IreneIndex(this)
-    //fun openWriter() = IreneIndexer(this)
+    fun openReader() = IreneIndex(this)
+    fun openWriter() = IreneIndexer(this)
 }

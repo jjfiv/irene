@@ -34,6 +34,8 @@ subprojects {
 
     implementation group: 'io.javalin', name: 'javalin', version: '3.8.0'
     implementation 'com.github.ajalt:clikt:2.6.0'
+    implementation "org.slf4j:slf4j-simple:1.7.28"
+
 
     // Lucene:
     implementation group: 'org.apache.lucene', name: 'lucene-core', version: luceneVersion

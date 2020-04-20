@@ -5,17 +5,13 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.options.validate
 import com.github.ajalt.clikt.parameters.types.int
-import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.QExprModule
 import io.javalin.Javalin
 import io.javalin.http.BadRequestResponse
 import io.javalin.plugin.json.JavalinJackson
-import org.apache.http.client.methods.RequestBuilder.options
-import org.lemurproject.galago.utility.Parameters
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
