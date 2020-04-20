@@ -16,6 +16,7 @@ allprojects {
   apply plugin: 'maven-publish'
 }
 
+
 subprojects {
   sourceCompatibility = 1.8
   targetCompatibility = 1.8
@@ -32,6 +33,7 @@ subprojects {
     implementation group: 'org.roaringbitmap', name: 'RoaringBitmap', version: '0.6.39'
 
     implementation group: 'io.javalin', name: 'javalin', version: '3.8.0'
+    implementation 'com.github.ajalt:clikt:2.6.0'
 
     // Lucene:
     implementation group: 'org.apache.lucene', name: 'lucene-core', version: luceneVersion
