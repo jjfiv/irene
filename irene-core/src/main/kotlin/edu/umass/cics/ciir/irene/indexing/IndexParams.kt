@@ -1,5 +1,9 @@
-package edu.umass.cics.ciir.irene
+package edu.umass.cics.ciir.irene.indexing
 
+import edu.umass.cics.ciir.irene.DiskIO
+import edu.umass.cics.ciir.irene.IreneEnglishAnalyzer
+import edu.umass.cics.ciir.irene.MemoryIO
+import edu.umass.cics.ciir.irene.RefCountedIO
 import org.apache.lucene.analysis.Analyzer
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.index.IndexWriterConfig

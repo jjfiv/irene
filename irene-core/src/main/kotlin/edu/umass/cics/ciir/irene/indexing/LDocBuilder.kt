@@ -1,11 +1,9 @@
 package edu.umass.cics.ciir.irene.indexing
 
-import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.LDoc
 import edu.umass.cics.ciir.irene.tokenize
 import org.apache.lucene.document.*
 import org.apache.lucene.index.IndexableField
-import java.time.LocalDateTime
 
 /**
  *

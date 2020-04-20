@@ -1,6 +1,5 @@
 package edu.umass.cics.ciir.irene.indexing
 
-import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig

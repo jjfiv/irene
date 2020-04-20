@@ -1,9 +1,9 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.EmptyIndex
-import edu.umass.cics.ciir.irene.IIndex
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.IreneWeightedDoc
+import edu.umass.cics.ciir.irene.index.EmptyIndex
+import edu.umass.cics.ciir.irene.index.IIndex
 import org.apache.lucene.queryparser.classic.QueryParser
 
 /**

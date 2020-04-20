@@ -2,6 +2,8 @@ package edu.umass.cics.ciir.irene
 
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
+import edu.umass.cics.ciir.irene.index.IIndex
+import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.lucene.*
 import edu.umass.cics.ciir.irene.scoring.IreneQueryModel

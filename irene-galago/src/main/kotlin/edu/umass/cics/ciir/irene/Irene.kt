@@ -1,23 +1,11 @@
 package edu.umass.cics.ciir.irene
 
-import com.github.benmanes.caffeine.cache.Cache
-import com.github.benmanes.caffeine.cache.Caffeine
+import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.indexing.IreneIndexer
-import edu.umass.cics.ciir.irene.lang.*
-import edu.umass.cics.ciir.irene.lucene.CalculateStatistics
-import edu.umass.cics.ciir.irene.scoring.IreneQueryModel
-import edu.umass.cics.ciir.irene.utils.ReservoirSampler
 import org.apache.lucene.benchmark.byTask.feeds.DocData
 import org.apache.lucene.benchmark.byTask.feeds.NoMoreDataException
 import org.apache.lucene.benchmark.byTask.feeds.TrecContentSource
-import org.apache.lucene.index.*
-import org.apache.lucene.search.*
 import org.lemurproject.galago.utility.Parameters
-import org.roaringbitmap.RoaringBitmap
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ForkJoinPool
-import java.util.concurrent.ForkJoinTask
 
 /**
  *

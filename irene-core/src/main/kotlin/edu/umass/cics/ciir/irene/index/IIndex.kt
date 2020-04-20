@@ -1,5 +1,7 @@
-package edu.umass.cics.ciir.irene
+package edu.umass.cics.ciir.irene.index
 
+import edu.umass.cics.ciir.irene.GenericTokenizer
+import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.lang.CountStats
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv

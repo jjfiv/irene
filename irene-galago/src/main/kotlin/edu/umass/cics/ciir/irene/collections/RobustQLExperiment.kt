@@ -1,6 +1,6 @@
 package edu.umass.cics.ciir.irene.collections
 
-import edu.umass.cics.ciir.irene.IndexParams
+import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.galago.toQueryResults
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.BagOfWords

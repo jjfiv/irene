@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.galago.pmake
+import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.lang.expr_from_json
 import edu.umass.cics.ciir.irene.lang.expr_to_json
 import org.lemurproject.galago.tupleflow.web.WebHandler

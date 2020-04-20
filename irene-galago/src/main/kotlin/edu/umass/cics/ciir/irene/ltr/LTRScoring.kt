@@ -2,6 +2,7 @@ package edu.umass.cics.ciir.irene.ltr
 
 import edu.umass.cics.ciir.irene.*
 import edu.umass.cics.ciir.irene.galago.getStr
+import edu.umass.cics.ciir.irene.index.IIndex
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.*

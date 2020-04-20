@@ -1,6 +1,6 @@
 package edu.umass.cics.ciir.irene.scoring
 
-import edu.umass.cics.ciir.irene.IndexParams
+import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.galago.*
 import edu.umass.cics.ciir.irene.indexing.IreneIndexer
