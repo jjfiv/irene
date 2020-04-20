@@ -3,128 +3,26 @@ package edu.umass.cics.ciir.irene
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.galago.pmake
 import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.QExprModule
-import org.lemurproject.galago.tupleflow.web.WebHandler
-import org.lemurproject.galago.tupleflow.web.WebServer
+import io.javalin.Javalin
+import io.javalin.http.BadRequestResponse
+import io.javalin.plugin.json.JavalinJackson
 import org.lemurproject.galago.utility.Parameters
 import java.io.File
-import javax.servlet.http.HttpServletRequest
-import javax.servlet.http.HttpServletResponse
+import java.util.concurrent.ConcurrentHashMap
 
 val mapper = ObjectMapper()
         .registerKotlinModule()
         .registerModule(QExprModule())
-
-fun HttpServletRequest.getParamOrNull(param: String): String? {
-    val values = this.getParameterValues(param) ?: return null
-    if (values.size != 1) {
-        error("Received multiple parameters for $param.")
-    }
-    return values[0]
-}
-
-fun <T> HttpServletResponse.sendJSON(item: T) {
-    contentType = "application/json"
-    status = 200
-    writer.use { out ->
-        mapper.writeValue(out, item)
-    }
-}
-fun HttpServletResponse.sendRawJSON(str: String) {
-    contentType = "application/json"
-    status = 200
-    writer.use { out ->
-        out.println(str)
-    }
-}
 
 data class TokenizeResponse(val terms: List<String>)
 data class DocResponse(val name: String, val score: Float)
 data class QueryResponse(val topdocs: List<DocResponse>, val totalHits: Long)
 data class PrepareRequest(val query: QExpr, val index: String)
 data class QueryRequest(val query: QExpr, val index: String, val depth: Int)
-
-class IreneAPIServer(val argp: Parameters) : WebHandler {
-    val indexes = HashMap<String, IreneIndex>()
-    override fun handle(request: HttpServletRequest, response: HttpServletResponse) {
-        try {
-            val GET = request.method == "GET"
-            val POST = request.method == "POST"
-            when (request.pathInfo) {
-                "/indexes" -> if (GET) {
-                    response.sendRawJSON(Parameters.wrap(indexes.mapValues { index ->
-                        val params = index.value.params
-                        pmake {
-                            set("defaultField", params.defaultField)
-                            set("path", params.filePath.toString())
-                            set("idFieldName", params.idFieldName)
-                        }
-                    }).toString())
-                }
-                "/config" -> if (GET) {
-                    val index = indexes[request.getParamOrNull("index") ?: error("index must be specified")]
-                            ?: error("no such index!")
-                    response.sendJSON(index.env.config)
-                } else if (POST && request.contentType == "application/json") {
-                    val index = indexes[request.getParamOrNull("index") ?: error("index must be specified")]
-                            ?: error("no such index!")
-                    // TODO: make this more fine-grained
-                    index.env.config = mapper.readValue(request.reader, EnvConfig::class.java)
-                }
-                "/open" -> if (POST) {
-                    val name = request.getParamOrNull("name") ?: error("Name for index must be assigned!")
-                    if (indexes.contains(name)) {
-                        response.sendError(400, "Already Open")
-                        return
-                    }
-                    val path = request.getParamOrNull("path") ?: error("Path must be given!")
-                    val params = IndexParams().apply {
-                        withPath(File(path))
-                    }
-                    indexes[name] = params.openReader()
-                }
-                "/tokenize" -> if (GET) {
-                    val index = indexes[request.getParamOrNull("index") ?: error("index must be specified")]
-                            ?: error("no such index!")
-                    val text = request.getParamOrNull("text") ?: error("text must be specified")
-                    val field = request.getParamOrNull("field") ?: index.env.defaultField
-                    val terms = index.tokenize(text, field)
-                    response.sendJSON(TokenizeResponse(terms))
-                }
-                "/doc" -> if (GET) {
-                    val index = indexes[request.getParamOrNull("index") ?: error("index must be specified")]
-                            ?: error("no such index!")
-                    val id = request.getParamOrNull("id") ?: error("doc id must be specified")
-                    val internal = index.documentById(id) ?: error("No such id!")
-                    response.sendJSON(index.docAsMap(internal))
-                }
-                "/prepare" -> if (POST && request.contentType == "application/json") {
-                    val req = mapper.readValue(request.reader, PrepareRequest::class.java)
-                    val index = this.indexes[req.index] ?: error("no such index=${req.index}")
-                    response.sendJSON(index.env.prepare(req.query))
-                }
-                "/query" -> if (POST && request.contentType == "application/json") {
-                    val req = mapper.readValue(request.reader, QueryRequest::class.java)
-                    val index = this.indexes[req.index] ?: error("no such index=${req.index}")
-                    val results = index.search(req.query, req.depth)
-                    val docs = results.scoreDocs.map { sdoc ->
-                        DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score)
-                    }
-                    response.sendJSON(QueryResponse(docs, results.totalHits))
-                }
-            }
-        } catch (e: Throwable) {
-            e.printStackTrace(System.err)
-            if (!response.isCommitted) {
-                response.sendError(501, e.message)
-            }
-        }
-    }
-
-}
+data class IndexInfo(val idFieldName: String, val path: String, val defaultField: String)
 
 fun main(args: Array<String>) {
     val argp = Parameters.parseArgs(args)
@@ -136,11 +34,67 @@ fun main(args: Array<String>) {
     }
     val host = argp.getStr("host")
     val port = argp.getInt("port")
-
     println("launch $host:$port")
-    val handler = IreneAPIServer(argp)
-    val server = WebServer.start(argp, handler)
-    println("running ${server.url}")
-    server.join()
-    println("shutdown")
+
+    val indexes = ConcurrentHashMap<String, IreneIndex>()
+    JavalinJackson.configure(mapper)
+    val app = Javalin.create().start(host, port)
+
+    app.get("/doc") {ctx ->
+        val index_id = ctx.queryParam("index") ?: error("index must be specified")
+        val index = indexes[index_id] ?: error("Must open '$index_id' before using it.")
+        val id = ctx.queryParam("id") ?: error("Must specify a document id.")
+        val internal = index.documentById(id) ?: error("No such document: $id")
+        ctx.json(index.docAsMap(internal)!!)
+    }
+
+    app.get("/indexes") { ctx ->
+        ctx.json(indexes.mapValues { (_, index) ->
+            IndexInfo(index.idFieldName, index.params.filePath.toString(), index.defaultField)
+        })
+    }
+
+    app.get("/config") { ctx ->
+        val index_id = ctx.queryParam("index") ?: error("index must be specified")
+        val index = indexes[index_id] ?: error("Must open '$index_id' before using it.")
+        ctx.json(index.env.config)
+    }
+
+    app.post("/open") { ctx ->
+        val name = ctx.formParam("name") ?: error("'name' is required.")
+        val path = ctx.formParam("path") ?: error("'path' is required.")
+        if (indexes.contains(name)) {
+            throw BadRequestResponse("Already Open")
+        } else {
+            val params = IndexParams().apply {
+                withPath(File(path))
+            }
+            indexes[name] = params.openReader()
+        }
+    }
+
+    app.get("/tokenize") { ctx ->
+        val index_id = ctx.queryParam("index") ?: error("index must be specified")
+        val index = indexes[index_id] ?: error("Must open '$index_id' before using it.")
+        val text = ctx.queryParam("text") ?: error("'text' is required.")
+        val field = ctx.queryParam("text") ?: index.env.defaultField
+        val terms = index.tokenize(text, field)
+        ctx.json(TokenizeResponse(terms))
+    }
+
+    app.post("/prepare") {ctx ->
+        val req = ctx.bodyValidator<PrepareRequest>().get()
+        val index = indexes[req.index] ?: error("no such index ${req.index}")
+        ctx.json(index.env.prepare(req.query))
+    }
+
+    app.post("/query") { ctx ->
+        val req = ctx.bodyValidator<QueryRequest>().get()
+        val index = indexes[req.index] ?: error("no such index ${req.index}")
+        val results = index.search(req.query, req.depth)
+        val docs = results.scoreDocs.map { sdoc ->
+            DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score)
+        }
+        ctx.json(QueryResponse(docs, results.totalHits))
+    }
 }

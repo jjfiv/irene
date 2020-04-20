@@ -31,6 +31,8 @@ subprojects {
     implementation group: "net.sf.trove4j", name: "trove4j", version: "3.0.3"
     implementation group: 'org.roaringbitmap', name: 'RoaringBitmap', version: '0.6.39'
 
+    implementation group: 'io.javalin', name: 'javalin', version: '3.8.0'
+
     // Lucene:
     implementation group: 'org.apache.lucene', name: 'lucene-core', version: luceneVersion
     implementation group: 'org.apache.lucene', name: 'lucene-benchmark', version: luceneVersion
