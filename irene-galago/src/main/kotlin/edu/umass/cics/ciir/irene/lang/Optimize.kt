@@ -175,7 +175,7 @@ fun combineWeights(input: QExpr, ctx: CombineWeightsFixedPoint): QExpr = qmap(in
 
 class TypeCheckError(msg: String): Exception(msg)
 
-fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded= DataNeeded.DOCS) {
+fun analyzeDataNeededRecursive(q: QExpr, needed: DataNeeded = DataNeeded.DOCS) {
     var childNeeds = needed
     childNeeds = when(q) {
         is TextExpr -> {

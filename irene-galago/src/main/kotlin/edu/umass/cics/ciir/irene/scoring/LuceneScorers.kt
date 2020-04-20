@@ -64,7 +64,8 @@ data class IQContext(val iqm: IreneQueryModel, val context: LeafReaderContext) :
         return lengths
     }
     override fun denseLongField(name: String, missing: Long): LongEvalNode {
-        val iter = lucene_try { context.reader().getNumericDocValues(name) } ?: error("Couldn't find NumericDocValues=$name")
+        val iter = lucene_try { context.reader().getNumericDocValues(name) }
+                ?: error("Couldn't find NumericDocValues=$name")
         // Lucene requires that we call nextDoc() to begin reading any DocIdSetIterator
         iter.nextDoc()
         return LuceneLongDocValues(iter, missing)

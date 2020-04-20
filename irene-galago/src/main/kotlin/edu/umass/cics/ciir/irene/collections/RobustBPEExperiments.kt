@@ -2,6 +2,7 @@ package edu.umass.cics.ciir.irene.collections
 
 import edu.umass.cics.ciir.irene.galago.toQueryResults
 import edu.umass.cics.ciir.irene.lang.SequentialDependenceModel
+import edu.umass.cics.ciir.irene.openReader
 import edu.umass.cics.ciir.irene.utils.smartLines
 import edu.umass.cics.ciir.irene.utils.smartPrinter
 import edu.umass.cics.ciir.irene.utils.timed

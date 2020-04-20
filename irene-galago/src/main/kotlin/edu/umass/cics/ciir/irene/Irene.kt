@@ -3,12 +3,11 @@ package edu.umass.cics.ciir.irene
 import com.github.benmanes.caffeine.cache.Cache
 import com.github.benmanes.caffeine.cache.Caffeine
 import edu.umass.cics.ciir.irene.indexing.LDocBuilder
+import edu.umass.cics.ciir.irene.indexing.TrueLengthNorm
 import edu.umass.cics.ciir.irene.lang.*
-import edu.umass.cics.ciir.irene.scoring.IreneQueryModel
 import edu.umass.cics.ciir.irene.ltr.LTRDoc
+import edu.umass.cics.ciir.irene.scoring.IreneQueryModel
 import edu.umass.cics.ciir.irene.utils.ReservoirSampler
-import org.apache.lucene.analysis.Analyzer
-import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper
 import org.apache.lucene.benchmark.byTask.feeds.DocData
 import org.apache.lucene.benchmark.byTask.feeds.NoMoreDataException
 import org.apache.lucene.benchmark.byTask.feeds.TrecContentSource
@@ -17,7 +16,6 @@ import org.apache.lucene.search.*
 import org.lemurproject.galago.utility.Parameters
 import org.roaringbitmap.RoaringBitmap
 import java.io.Closeable
-import java.io.File
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ForkJoinPool
@@ -30,6 +28,9 @@ import java.util.concurrent.atomic.AtomicLong
  * @author jfoley.
  */
 
+fun IndexParams.openReader() = IreneIndex(this)
+fun IndexParams.openWriter() = IreneIndexer(this)
+
 fun LDoc.toParameters(): Parameters {
     val output = Parameters.create()
     fields.forEach { field ->
@@ -40,47 +41,6 @@ fun LDoc.toParameters(): Parameters {
     return output
 }
 
-class IndexParams {
-    var defaultField = "body"
-    var defaultAnalyzer: Analyzer = IreneEnglishAnalyzer()
-    private var perFieldAnalyzers = HashMap<String, Analyzer>()
-    var directory: RefCountedIO? = null
-    var openMode: IndexWriterConfig.OpenMode? = null
-    var idFieldName = "id"
-    var filePath: File? = null
-
-    fun withAnalyzer(field: String, analyzer: Analyzer): IndexParams {
-        perFieldAnalyzers[field] = analyzer
-        return this
-    }
-    fun inMemory(): IndexParams {
-        directory = RefCountedIO(MemoryIO())
-        create()
-        return this
-    }
-    fun withPath(fp: File): IndexParams {
-        filePath = fp
-        directory = RefCountedIO(DiskIO.open(fp.toPath()))
-        return this
-    }
-    fun create(): IndexParams {
-        openMode = IndexWriterConfig.OpenMode.CREATE
-        return this
-    }
-    fun append(): IndexParams {
-        openMode = IndexWriterConfig.OpenMode.CREATE_OR_APPEND
-        return this
-    }
-    val analyzer: Analyzer
-            get() = if (perFieldAnalyzers.isEmpty()) {
-                defaultAnalyzer
-            } else {
-                PerFieldAnalyzerWrapper(defaultAnalyzer, perFieldAnalyzers)
-            }
-
-    fun openReader() = IreneIndex(this)
-    fun openWriter() = IreneIndexer(this)
-}
 
 class IreneIndexer(val params: IndexParams) : Closeable {
     companion object {

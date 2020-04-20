@@ -2,16 +2,12 @@ package edu.umass.cics.ciir.irene.collections
 
 import edu.umass.cics.ciir.irene.IndexParams
 import edu.umass.cics.ciir.irene.IreneIndexer
-import edu.umass.cics.ciir.irene.docs
 import edu.umass.cics.ciir.irene.galago.getStr
 import edu.umass.cics.ciir.irene.utils.CountingDebouncer
 import edu.umass.cics.ciir.irene.utils.smartDoLines
 import org.apache.lucene.analysis.core.WhitespaceAnalyzer
-import org.apache.lucene.benchmark.byTask.feeds.TrecContentSource
-import org.apache.lucene.benchmark.byTask.utils.Config
 import org.lemurproject.galago.utility.Parameters
 import java.io.File
-import java.util.*
 
 val RobustBPEParams = IndexParams().apply {
     defaultField = "body"

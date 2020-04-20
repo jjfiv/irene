@@ -5,7 +5,6 @@ import edu.umass.cics.ciir.irene.GenericTokenizer
 import edu.umass.cics.ciir.irene.IIndex
 import edu.umass.cics.ciir.irene.WhitespaceTokenizer
 import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.lang.DenseLongField
 import edu.umass.cics.ciir.irene.lang.LuceneQuery
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv

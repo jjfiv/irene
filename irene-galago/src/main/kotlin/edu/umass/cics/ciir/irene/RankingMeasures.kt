@@ -1,7 +1,7 @@
 package edu.umass.cics.ciir.irene
 
 import edu.umass.cics.ciir.irene.utils.safeDiv
-import java.util.Comparator;
+import java.util.*
 
 data class PredTruth(val truth: Boolean, val prediction: Double) {
   constructor(input: Pair<Boolean, Double>) : this(input.first, input.second)

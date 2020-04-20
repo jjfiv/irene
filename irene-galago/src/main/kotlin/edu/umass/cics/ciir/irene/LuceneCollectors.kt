@@ -11,7 +11,6 @@ import org.apache.lucene.index.LeafReaderContext
 import org.apache.lucene.search.*
 import org.roaringbitmap.RoaringBitmap
 import java.util.*
-import java.util.concurrent.ThreadLocalRandom
 import kotlin.collections.ArrayList
 
 /**

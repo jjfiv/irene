@@ -1,6 +1,5 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.IreneIndex
 import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.ltr.BagOfWords
 import edu.umass.cics.ciir.irene.ltr.RelevanceModel

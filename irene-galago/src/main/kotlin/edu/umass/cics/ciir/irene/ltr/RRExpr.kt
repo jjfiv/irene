@@ -1,10 +1,10 @@
 package edu.umass.cics.ciir.irene.ltr
 
-import edu.umass.cics.ciir.irene.utils.computeEntropy
-import edu.umass.cics.ciir.irene.utils.mean
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.RREnv
 import edu.umass.cics.ciir.irene.scoring.QueryEvalNode
+import edu.umass.cics.ciir.irene.utils.computeEntropy
+import edu.umass.cics.ciir.irene.utils.mean
 import org.apache.lucene.search.Explanation
 
 fun QExpr.toRRExpr(env: RREnv): RRExpr {

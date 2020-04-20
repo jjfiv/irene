@@ -1,12 +1,14 @@
 package edu.umass.cics.ciir.irene.lang
 
-import edu.umass.cics.ciir.irene.*
-import edu.umass.cics.ciir.irene.scoring.*
+import edu.umass.cics.ciir.irene.CountStats
+import edu.umass.cics.ciir.irene.DataNeeded
+import edu.umass.cics.ciir.irene.createOptimizedMovementExpr
+import edu.umass.cics.ciir.irene.indexing.BoolField
+import edu.umass.cics.ciir.irene.lucene_try
+import edu.umass.cics.ciir.irene.scoring.MustEval
+import edu.umass.cics.ciir.irene.scoring.RequireEval
 import org.apache.lucene.index.Term
 import org.apache.lucene.search.*
-import org.lemurproject.galago.utility.Parameters
-import java.util.*
-import kotlin.collections.HashSet
 
 typealias LuceneQuery = org.apache.lucene.search.Query
 

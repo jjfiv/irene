@@ -8,7 +8,6 @@ import edu.umass.cics.ciir.irene.utils.Fraction
 import gnu.trove.set.hash.TIntHashSet
 import org.apache.lucene.search.DocIdSetIterator
 import org.apache.lucene.search.Explanation
-import javax.management.QueryEval
 
 open class ScoringEnv(var doc: Int=-1) {
     open val ltr: ILTRDoc get() = error("No LTR document available.")

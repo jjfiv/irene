@@ -1,18 +1,14 @@
 package edu.umass.cics.ciir.irene.collections
 
 import edu.umass.cics.ciir.irene.IndexParams
-import edu.umass.cics.ciir.irene.IreneIndex
-import edu.umass.cics.ciir.irene.galago.getStr
-import edu.umass.cics.ciir.irene.galago.inqueryStop
 import edu.umass.cics.ciir.irene.galago.toQueryResults
 import edu.umass.cics.ciir.irene.lang.*
 import edu.umass.cics.ciir.irene.ltr.BagOfWords
-import edu.umass.cics.ciir.irene.ltr.RelevanceModel
+import edu.umass.cics.ciir.irene.openReader
 import edu.umass.cics.ciir.irene.utils.*
 import gnu.trove.map.hash.TObjectDoubleHashMap
 import org.lemurproject.galago.core.eval.QueryResults
 import org.lemurproject.galago.core.eval.SimpleEvalDoc
-import org.lemurproject.galago.utility.MathUtils
 import org.lemurproject.galago.utility.Parameters
 import org.lemurproject.galago.utility.lists.Ranked
 import java.io.File
