@@ -11,7 +11,7 @@ jobs:
     - uses: actions/checkout@v1
     - name: Install vendored Galago
       run: ./install_galago
-    - name: mvn test
-      run: mvn test
-    - name: mvn package
-      run: mvn package
+    - name: run tests
+      run: ./gradlew test
+    - name: gradle shadowJar
+      run: ./gradlew shadowJar
