@@ -1,0 +1,80 @@
+allprojects {
+  ext {
+    kotlinVersion = "1.3.72"
+    luceneVersion = "7.1.0"
+    jacksonVersion = "2.10.0.pr1"
+  }
+
+  group = 'edu.umass.cics.ciir'
+  version = '0.6-SNAPSHOT'
+
+  tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+  }
+
+  apply plugin: 'java'
+  apply plugin: 'maven-publish'
+}
+
+
+subprojects {
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+
+  repositories {
+    mavenLocal()
+    mavenCentral()
+    jcenter()
+    maven { url "https://jitpack.io" }
+  }
+  dependencies {
+    implementation group: "com.github.ben-manes.caffeine", name: "caffeine", version: "2.3.1"
+    implementation group: "net.sf.trove4j", name: "trove4j", version: "3.0.3"
+    implementation group: 'org.roaringbitmap', name: 'RoaringBitmap', version: '0.6.39'
+
+    implementation group: 'io.javalin', name: 'javalin', version: '3.8.0'
+    implementation 'com.github.ajalt:clikt:2.6.0'
+    implementation "org.slf4j:slf4j-simple:1.7.28"
+
+
+    // Lucene:
+    implementation group: 'org.apache.lucene', name: 'lucene-core', version: luceneVersion
+    implementation group: 'org.apache.lucene', name: 'lucene-benchmark', version: luceneVersion
+    // JSON encoding:
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: jacksonVersion
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: jacksonVersion
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: jacksonVersion
+    implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
+
+    // Kotlin stdlib
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk7', version: kotlinVersion
+
+    // Testing:
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit', version: kotlinVersion
+  }
+
+  buildscript {
+    ext {
+      kotlinVersion = "1.3.72"
+    }
+    repositories {
+      mavenCentral()
+      jcenter()
+    }
+
+    dependencies {
+      classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+      classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+  }
+}
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+    }
+  }
+}
+
