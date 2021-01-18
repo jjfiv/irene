@@ -51,6 +51,12 @@ subprojects {
     // Testing:
     testImplementation group: 'junit', name: 'junit', version: '4.12'
     testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit', version: kotlinVersion
+
+    dependencies {
+      testImplementation platform("org.http4k:http4k-bom:4.1.1.1")
+      testImplementation "org.http4k:http4k-core"
+      testImplementation "org.http4k:http4k-client-apache"
+    }
   }
 
   buildscript {

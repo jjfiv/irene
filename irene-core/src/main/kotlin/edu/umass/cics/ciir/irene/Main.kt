@@ -27,10 +27,101 @@ data class IndexInfo(val idFieldName: String, val path: String, val defaultField
 data class IndexSpec(val name: String, val path: String, val idFieldName: String?, val defaultField: String?)
 data class ConfigFileContents(val indexes: List<IndexSpec>)
 
+object APIServer {
+    fun run(host: String, port: Int, indexes: Map<String, IreneIndex>): Javalin {
+        JavalinJackson.configure(mapper)
+        val app = Javalin.create().start(host, port)
+        println("launch $host:$port")
+
+        /// Print Exceptions so that debugging is possible / not annoying.
+        app.exception(Exception::class.java) { e, _ ->
+            e.printStackTrace(System.err)
+        }
+
+        app.get("/api/doc/:index") { ctx ->
+            val indexId = ctx.pathParam("index")
+            val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
+            val id = ctx.queryParam("id") ?: error("Must specify a document id.")
+            val internal = index.documentById(id) ?: error("No such document: $id")
+            ctx.json(index.docAsMap(internal)!!)
+        }
+
+        app.get("/api/random/:index") { ctx ->
+            val indexId = ctx.pathParam("index")
+            val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
+            for (_try in 0..30) {
+                val id = ThreadLocalRandom.current().nextInt(0, index.totalDocuments)
+                val doc = index.document(id, setOf(index.idFieldName)) ?: continue
+                // Skip blank pages.
+                val docId = doc.getField(index.idFieldName)?.stringValue() ?: continue
+                ctx.json(DocResponse(docId, 1.0f))
+                return@get
+            }
+            ctx.status(501)
+            ctx.result("Unable to find non-empty random document.")
+        }
+
+        app.get("/api/indexes") { ctx ->
+            ctx.json(indexes.mapValues { (_, index) ->
+                IndexInfo(index.idFieldName, index.params.filePath.toString(), index.defaultField)
+            })
+        }
+
+        app.get("/api/config/:index") { ctx ->
+            val indexId = ctx.pathParam("index")
+            val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
+            ctx.json(index.env.config)
+        }
+
+        app.get("/api/tokenize/:index") { ctx ->
+            val indexId = ctx.pathParam("index")
+            val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
+            val text = ctx.queryParam("text") ?: error("'text' is required.")
+            val field = ctx.queryParam("field") ?: index.env.defaultField
+            val terms = index.tokenize(text, field)
+            ctx.json(TokenizeResponse(terms))
+        }
+
+        app.post("/api/prepare") {ctx ->
+            val req = ctx.bodyValidator<PrepareRequest>().get()
+            val index = indexes[req.index] ?: error("no such index ${req.index}")
+            ctx.json(index.env.prepare(req.query))
+        }
+
+        app.post("/api/sample") {ctx ->
+            val req = ctx.bodyValidator<QueryRequest>().get()
+            val index = indexes[req.index] ?: error("no such index ${req.index}")
+            val results: ReservoirSampler<Int> = index.sample(req.query, req.depth, ThreadLocalRandom.current())
+            val docs = results.map { index.getDocumentName(it)!! }
+            ctx.json(SetResponse(docs, results.totalOffered.toLong()))
+        }
+
+        app.post("/api/docset") { ctx ->
+            val req = ctx.bodyValidator<QueryRequest>().get()
+            val index = indexes[req.index] ?: error("no such index ${req.index}")
+            val results: RoaringBitmap = index.matches(req.query)
+            val docs = results.map { index.getDocumentName(it)!! }
+            ctx.json(SetResponse(docs, results.longCardinality))
+        }
+
+        app.post("/api/query") { ctx ->
+            val req = ctx.bodyValidator<QueryRequest>().get()
+            val index = indexes[req.index] ?: error("no such index ${req.index}")
+            val results = index.search(req.query, req.depth)
+            val docs = results.scoreDocs.map { sdoc ->
+                DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score)
+            }
+            ctx.json(QueryResponse(docs, results.totalHits))
+        }
+
+        return app
+    }
+}
+
 fun main(args: Array<String>) {
     var host = "localhost"
     var port = 4444
-    val indexes = ConcurrentHashMap<String, IreneIndex>()
+    val indexes = HashMap<String, IreneIndex>()
 
     var i = 0
     while (i < args.size) {
@@ -67,96 +158,6 @@ fun main(args: Array<String>) {
         }
     }
 
-
-    JavalinJackson.configure(mapper)
-    val app = Javalin.create().start(host, port)
-    println("launch $host:$port")
-
-    /// Print Exceptions so that debugging is possible / not annoying.
-    app.exception(Exception::class.java) { e, _ ->
-        e.printStackTrace(System.err)
-    }
-
-    app.get("/api/doc/:index") { ctx ->
-        val indexId = ctx.pathParam("index")
-        val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
-        val id = ctx.queryParam("id") ?: error("Must specify a document id.")
-        val internal = index.documentById(id) ?: error("No such document: $id")
-        ctx.json(index.docAsMap(internal)!!)
-    }
-
-    app.get("/api/random/:index") { ctx ->
-        val indexId = ctx.pathParam("index")
-        val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
-        for (_try in 0..30) {
-            val id = ThreadLocalRandom.current().nextInt(0, index.totalDocuments)
-            val doc = index.document(id, setOf(index.idFieldName)) ?: continue
-            // Skip blank pages.
-            val docId = doc.getField(index.idFieldName)?.stringValue() ?: continue
-            ctx.json(DocResponse(docId, 1.0f))
-            return@get
-        }
-        ctx.status(501)
-        ctx.result("Unable to find non-empty random document.")
-    }
-
-    app.get("/indexes") { ctx ->
-        ctx.json(indexes.mapValues { (_, index) ->
-            IndexInfo(index.idFieldName, index.params.filePath.toString(), index.defaultField)
-        })
-    }
-
-    app.get("/api/indexes") { ctx ->
-        ctx.json(indexes.mapValues { (_, index) ->
-            IndexInfo(index.idFieldName, index.params.filePath.toString(), index.defaultField)
-        })
-    }
-
-    app.get("/api/config/:index") { ctx ->
-        val indexId = ctx.pathParam("index")
-        val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
-        ctx.json(index.env.config)
-    }
-
-    app.get("/api/tokenize/:index") { ctx ->
-        val indexId = ctx.pathParam("index")
-        val index = indexes[indexId] ?: error("Must open '$indexId' before using it.")
-        val text = ctx.queryParam("text") ?: error("'text' is required.")
-        val field = ctx.queryParam("field") ?: index.env.defaultField
-        val terms = index.tokenize(text, field)
-        ctx.json(TokenizeResponse(terms))
-    }
-
-    app.post("/api/prepare") {ctx ->
-        val req = ctx.bodyValidator<PrepareRequest>().get()
-        val index = indexes[req.index] ?: error("no such index ${req.index}")
-        ctx.json(index.env.prepare(req.query))
-    }
-
-    app.post("/api/sample") {ctx -> 
-        val req = ctx.bodyValidator<QueryRequest>().get()
-        val index = indexes[req.index] ?: error("no such index ${req.index}")
-        val results: ReservoirSampler<Int> = index.sample(req.query, req.depth, ThreadLocalRandom.current())
-        val docs = results.map { index.getDocumentName(it)!! }
-        ctx.json(SetResponse(docs, results.totalOffered.toLong()))
-    }
-
-    app.post("/api/docset") { ctx ->
-        val req = ctx.bodyValidator<QueryRequest>().get()
-        val index = indexes[req.index] ?: error("no such index ${req.index}")
-        val results: RoaringBitmap = index.matches(req.query)
-        val docs = results.map { index.getDocumentName(it)!! }
-        ctx.json(SetResponse(docs, results.longCardinality))
-    }
-
-    app.post("/api/query") { ctx ->
-        val req = ctx.bodyValidator<QueryRequest>().get()
-        val index = indexes[req.index] ?: error("no such index ${req.index}")
-        val results = index.search(req.query, req.depth)
-        val docs = results.scoreDocs.map { sdoc ->
-            DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score)
-        }
-        ctx.json(QueryResponse(docs, results.totalHits))
-    }
+    val app = APIServer.run(host, port, indexes)
 
 }
