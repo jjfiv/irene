@@ -105,7 +105,7 @@ class IreneIndex(object):
     def doc(self, name: str) -> Dict[str, Any]:
         return self.service.doc(self.index, name)
     
-    def random(self ) -> Dict[str, Any]:
+    def random(self ) -> str:
         return self.service.random(self.index)
 
     def query(self, query: Union[Dict, QExpr], depth: int = 50) -> QueryResponse:

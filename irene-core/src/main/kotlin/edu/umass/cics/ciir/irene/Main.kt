@@ -5,8 +5,10 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.indexing.IndexParams
 import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.QExprModule
+import edu.umass.cics.ciir.irene.utils.ReservoirSampler
 import io.javalin.Javalin
 import io.javalin.plugin.json.JavalinJackson
+import org.roaringbitmap.RoaringBitmap
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
@@ -18,6 +20,7 @@ val mapper = ObjectMapper()
 data class TokenizeResponse(val terms: List<String>)
 data class DocResponse(val name: String, val score: Float)
 data class QueryResponse(val topdocs: List<DocResponse>, val totalHits: Long)
+data class SetResponse(val matches: List<String>, val totalHits: Long)
 data class PrepareRequest(val query: QExpr, val index: String)
 data class QueryRequest(val query: QExpr, val index: String, val depth: Int)
 data class IndexInfo(val idFieldName: String, val path: String, val defaultField: String)
@@ -130,6 +133,22 @@ fun main(args: Array<String>) {
         ctx.json(index.env.prepare(req.query))
     }
 
+    app.post("/api/sample") {ctx -> 
+        val req = ctx.bodyValidator<QueryRequest>().get()
+        val index = indexes[req.index] ?: error("no such index ${req.index}")
+        val results: ReservoirSampler<Int> = index.sample(req.query, req.depth, ThreadLocalRandom.current())
+        val docs = results.map { index.getDocumentName(it)!! }
+        ctx.json(SetResponse(docs, results.totalOffered.toLong()))
+    }
+
+    app.post("/api/docset") { ctx ->
+        val req = ctx.bodyValidator<QueryRequest>().get()
+        val index = indexes[req.index] ?: error("no such index ${req.index}")
+        val results: RoaringBitmap = index.matches(req.query)
+        val docs = results.map { index.getDocumentName(it)!! }
+        ctx.json(SetResponse(docs, results.longCardinality))
+    }
+
     app.post("/api/query") { ctx ->
         val req = ctx.bodyValidator<QueryRequest>().get()
         val index = indexes[req.index] ?: error("no such index ${req.index}")
@@ -139,4 +158,5 @@ fun main(args: Array<String>) {
         }
         ctx.json(QueryResponse(docs, results.totalHits))
     }
+
 }
