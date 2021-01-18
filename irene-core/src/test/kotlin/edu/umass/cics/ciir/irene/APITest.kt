@@ -17,7 +17,7 @@ import org.junit.Assert.*
 import org.junit.ClassRule
 import org.junit.Test
 import org.junit.rules.ExternalResource
-import java.util.HashMap
+import java.util.*
 
 
 class SharedIndex : ExternalResource() {
@@ -171,4 +171,63 @@ class APITest {
         assertEquals(localPrep, remotePrep)
     }
 
+    @Test
+    fun testQueryPost() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+        val n = 4
+
+        for (text in listOf("a", "b", "c", "d")) {
+            val q = BM25Expr(TextExpr(text))
+            val localResults = index.search(q, n)
+            val r = invokePostAPI("/api/query", QueryRequest(q, "default", n))
+            assertEquals(r.status, OK)
+            val remoteResults = mapper.readValue(r.bodyString(), QueryResponse::class.java)
+            assertEquals(localResults.totalHits, remoteResults.totalHits)
+            assertEquals(localResults.scoreDocs.size, remoteResults.topdocs.size)
+        }
+    }
+
+    @Test
+    fun testDocSetPost() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+        val n = 4
+
+        for (text in listOf("a", "b", "c", "d")) {
+            val q = BM25Expr(TextExpr(text))
+            val localResults = index.search(q, n)
+            val names = localResults.scoreDocs.map { index.getDocumentName(it.doc) }.toSet()
+            val r = invokePostAPI("/api/docset", QueryRequest(q, "default", n))
+            assertEquals(r.status, OK)
+            val remoteResults = mapper.readValue(r.bodyString(), SetResponse::class.java)
+            assertEquals(localResults.totalHits, remoteResults.totalHits)
+            assertEquals(names, remoteResults.matches.toSet())
+        }
+    }
+
+    @Test
+    fun testSamplePost() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+        val n = 2
+
+        for (text in listOf("a", "b", "c", "d")) {
+            val q = BM25Expr(TextExpr(text))
+
+            // First; collection is deterministic on seed:
+            val localResults = index.sample(q.copy(), n, Random(13L))
+            val names = localResults.mapTo(hashSetOf()) { index.getDocumentName(it)!! }
+            val localResults2 = index.sample(q.copy(), n, Random(13L))
+            val names2 = localResults2.mapTo(hashSetOf()) { index.getDocumentName(it)!! }
+            assertEquals(names, names2)
+
+            // Second; remote and local are the same:
+            val r = invokePostAPI("/api/sample", SampleRequest(q, "default", depth=n, seed=13L))
+            assertEquals(r.status, OK)
+            val remoteResults = mapper.readValue(r.bodyString(), SetResponse::class.java)
+            assertEquals(localResults.totalOffered.toLong(), remoteResults.totalHits)
+            assertEquals(names, remoteResults.matches.toSet())
+        }
+    }
 }

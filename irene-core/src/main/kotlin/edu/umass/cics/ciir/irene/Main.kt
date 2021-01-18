@@ -10,8 +10,10 @@ import io.javalin.Javalin
 import io.javalin.plugin.json.JavalinJackson
 import org.roaringbitmap.RoaringBitmap
 import java.io.File
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
+import kotlin.collections.HashMap
 
 val mapper = ObjectMapper()
         .registerKotlinModule()
@@ -23,6 +25,7 @@ data class DocResponse(val name: String, val score: Float)
 data class QueryResponse(val topdocs: List<DocResponse>, val totalHits: Long)
 data class SetResponse(val matches: List<String>, val totalHits: Long)
 data class PrepareRequest(val query: QExpr, val index: String)
+data class SampleRequest(val query: QExpr, val index: String, val depth: Int, val seed: Long? = null)
 data class QueryRequest(val query: QExpr, val index: String, val depth: Int)
 data class IndexInfo(val idFieldName: String, val path: String, val defaultField: String)
 data class IndexSpec(val name: String, val path: String, val idFieldName: String?, val defaultField: String?)
@@ -100,9 +103,10 @@ object APIServer {
         }
 
         app.post("/api/sample") {ctx ->
-            val req = ctx.bodyValidator<QueryRequest>().get()
+            val req = ctx.bodyValidator<SampleRequest>().get()
             val index = indexes[req.index] ?: error("no such index ${req.index}")
-            val results: ReservoirSampler<Int> = index.sample(req.query, req.depth, ThreadLocalRandom.current())
+            val seed = req.seed ?: ThreadLocalRandom.current().nextLong()
+            val results: ReservoirSampler<Int> = index.sample(req.query, req.depth, Random(seed))
             val docs = results.map { index.getDocumentName(it)!! }
             ctx.json(SetResponse(docs, results.totalOffered.toLong()))
         }
@@ -169,6 +173,6 @@ fun main(args: Array<String>) {
         }
     }
 
-    val app = APIServer.run(host, port, indexes)
+    APIServer.run(host, port, indexes)
 
 }

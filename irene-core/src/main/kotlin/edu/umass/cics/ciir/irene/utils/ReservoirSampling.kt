@@ -34,7 +34,7 @@ class ReservoirSampler<T>(val numSamples: Int, val rand: Random = Random()) : Ab
     }
     override fun get(index: Int): T = backing[index]
     override val size: Int
-        get() = numSamples
+        get() = backing.size
 }
 
 fun <T> Iterable<T>.sample(numSamples: Int, rand: Random = Random()): ReservoirSampler<T> {
