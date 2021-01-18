@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator
 import com.fasterxml.jackson.core.JsonParser
 import com.fasterxml.jackson.databind.*
 import com.fasterxml.jackson.databind.module.SimpleModule
+import edu.umass.cics.ciir.irene.DataNeeded
 
 class QExprModule : SimpleModule() {
     init {
@@ -49,6 +50,7 @@ class QExprSerializer : JsonSerializer<QExpr>() {
                 gen.writeStringField("text", q.text)
                 gen.writeStringField("field", q.field)
                 gen.writeStringField("stats_field", q.statsField)
+                gen.writeStringField("needed", q.needed.name)
             }
             is LuceneExpr -> TODO()
             is SynonymExpr -> {
@@ -115,9 +117,10 @@ class QExprSerializer : JsonSerializer<QExpr>() {
             is BM25Expr -> {
                 gen.writeStringField("kind", "BM25")
                 gen.writeObjectField("child", q.child)
-                q.k?.let { gen.writeNumberField("k", it) }
+                q.b?.let { gen.writeNumberField("b", it) }
                 q.k?.let { gen.writeNumberField("k", it) }
                 q.stats?.let { gen.writeObjectField("stats", it) }
+                gen.writeBooleanField("extractedIDF", q.extractedIDF)
             }
             is CountToScoreExpr -> TODO()
             is BoolToScoreExpr -> TODO()
@@ -156,6 +159,15 @@ private fun JsonNode.stringOrNull(key: String): String? {
     return obj.textValue()
 }
 
+private fun JsonNode.booleanOr(key: String, missing: Boolean): Boolean {
+    val obj = this.get(key) ?: return missing
+    if (obj.isNull) {
+        return missing
+    } else if (!obj.isBoolean) {
+        error("expected boolean for key=$key in $this")
+    }
+    return obj.asBoolean(missing)
+}
 private fun JsonNode.doubleOrNull(key: String): Double? {
     val obj = this.get(key) ?: return null
     if (obj.isNull) {
@@ -232,7 +244,8 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                     child = interpret_child(obj),
                     b = obj.doubleOrNull("b"),
                     k = obj.doubleOrNull("k"),
-                    stats = obj.statsOrNull()
+                    stats = obj.statsOrNull(),
+                    extractedIDF = obj.booleanOr("extractedIDF", false),
             )
             "LinearQL" -> LinearQLExpr(
                     child = interpret_child(obj),
@@ -247,7 +260,14 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
             "Text" -> TextExpr(
                     text = obj.getStr("text"),
                     field = obj.stringOrNull("field"),
-                    statsField = obj.stringOrNull("stats_field")
+                    statsField = obj.stringOrNull("stats_field"),
+                    needed = when(obj.stringOrNull("needed")) {
+                        null, "DOCS" -> DataNeeded.DOCS
+                        "COUNTS" -> DataNeeded.COUNTS
+                        "POSITIONS" -> DataNeeded.POSITIONS
+                        "SCORES" -> DataNeeded.SCORES
+                        else -> error("DataNeeded = ${obj.stringOrNull("needed")}")
+                    }
             )
             "Combine" -> {
                 val w_obj = obj.get("weights") ?: error("weights must be specified for combine $obj.")

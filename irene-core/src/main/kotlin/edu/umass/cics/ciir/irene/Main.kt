@@ -17,6 +17,7 @@ val mapper = ObjectMapper()
         .registerKotlinModule()
         .registerModule(QExprModule())
 
+data class TokenizeRequest(val text: String, val index: String, val field: String? = null)
 data class TokenizeResponse(val terms: List<String>)
 data class DocResponse(val name: String, val score: Float)
 data class QueryResponse(val topdocs: List<DocResponse>, val totalHits: Long)
@@ -82,7 +83,17 @@ object APIServer {
             ctx.json(TokenizeResponse(terms))
         }
 
+        app.post("/api/tokenize") { ctx ->
+            val req = ctx.bodyValidator<TokenizeRequest>().get()
+            val index = indexes[req.index] ?: error("Must open '${req.index}' before using it.")
+            val text = req.text
+            val field = req.field ?: index.env.defaultField
+            val terms = index.tokenize(text, field)
+            ctx.json(TokenizeResponse(terms))
+        }
+
         app.post("/api/prepare") {ctx ->
+            System.err.println("BODY-PREPARE " + ctx.body())
             val req = ctx.bodyValidator<PrepareRequest>().get()
             val index = indexes[req.index] ?: error("no such index ${req.index}")
             ctx.json(index.env.prepare(req.query))

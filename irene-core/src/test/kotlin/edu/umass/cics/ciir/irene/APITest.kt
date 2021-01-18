@@ -3,20 +3,21 @@ package edu.umass.cics.ciir.irene
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import edu.umass.cics.ciir.irene.indexing.IndexParams
+import edu.umass.cics.ciir.irene.lang.BM25Expr
+import edu.umass.cics.ciir.irene.lang.QExpr
 import edu.umass.cics.ciir.irene.lang.QExprModule
+import edu.umass.cics.ciir.irene.lang.TextExpr
 import io.javalin.Javalin
 import org.http4k.client.ApacheClient
 import org.http4k.core.Method
 import org.http4k.core.Request
 import org.http4k.core.Response
 import org.http4k.core.Status.Companion.OK
-import org.junit.Assert.assertEquals
+import org.junit.Assert.*
 import org.junit.ClassRule
 import org.junit.Test
 import org.junit.rules.ExternalResource
 import java.util.HashMap
-
-import org.junit.Assert.assertNull
 
 
 class SharedIndex : ExternalResource() {
@@ -73,7 +74,15 @@ class APITest {
         val resource = SharedIndex()
     }
 
-    private fun invokeGetAPI(path: String, params: Map<String, String>): Response {
+    private fun <T> invokePostAPI(path: String, params: T): Response {
+        val client = ApacheClient()
+        var request = Request(Method.POST, "http://localhost:4444${path}")
+        request.header("content-type", "application/json")
+        val bodyStr =resource.mapper.writeValueAsString(params)
+        request = request.body(bodyStr)
+        return client(request)
+    }
+    private fun invokeGetAPI(path: String, params: Map<String, String> = mapOf()): Response {
         val client = ApacheClient()
         var request = Request(Method.GET, "http://localhost:4444${path}")
         for ((k, v) in params) {
@@ -86,7 +95,7 @@ class APITest {
     fun testListIndexes() {
         val index = resource.index!!
         val mapper = resource.mapper
-        val r = invokeGetAPI("/api/indexes", mapOf())
+        val r = invokeGetAPI("/api/indexes")
         assertEquals(r.status, OK)
         val typeFactory = mapper.typeFactory
         val mapType = typeFactory.constructMapType(HashMap::class.java, String::class.java, IndexInfo::class.java)
@@ -110,4 +119,56 @@ class APITest {
         assertEquals("a b c", node[index.defaultField].asText())
         assertEquals("T", node["canonical"].asText())
     }
+
+    @Test
+    fun testRandomDoc() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+
+        val found = hashSetOf<String>()
+        val expected = hashSetOf("A", "B", "C", "D")
+        var trials = 0
+        while (found.size < index.reader.numDocs() && trials < 1000) {
+            val r = invokeGetAPI("/api/random/default")
+            assertEquals(r.status, OK)
+            val dr = mapper.readValue(r.bodyString(), DocResponse::class.java)
+            found.add(dr.name)
+            assertTrue("${dr.name} not expected...", dr.name in expected)
+            assertEquals(dr.score, 1.0f, 0.0001f)
+            trials += 1
+        }
+        assertEquals("Could not find all documents from a set of ${expected.size} randomly in $trials trials!", expected, found)
+    }
+
+    @Test
+    fun testIndexConfig() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+        val r = invokeGetAPI("/api/config/default")
+        assertEquals(r.status, OK)
+        val config = mapper.readValue(r.bodyString(), EnvConfig::class.java)
+        assertEquals(index.defaultField, config.defaultField)
+    }
+
+    @Test
+    fun testTokenizePost() {
+        val mapper = resource.mapper
+        val r = invokePostAPI("/api/tokenize", TokenizeRequest("Hello World!", "default"))
+        assertEquals(r.status, OK)
+        val resp = mapper.readValue(r.bodyString(), TokenizeResponse::class.java)
+        assertEquals(listOf("hello", "world"), resp.terms)
+    }
+
+    @Test
+    fun testPreparePost() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+        val q = BM25Expr(TextExpr("c"))
+        val localPrep = index.env.prepare(q)
+        val r = invokePostAPI("/api/prepare", PrepareRequest(q, "default"))
+        assertEquals(r.status, OK)
+        val remotePrep = mapper.readValue(r.bodyString(), QExpr::class.java)
+        assertEquals(localPrep, remotePrep)
+    }
+
 }
