@@ -35,32 +35,40 @@ class IreneService(object):
     def _url(self, path):
         return self.url + path
 
-    def open(self, name: str, path: str) -> "IreneIndex":
+    def index(self, name: str) -> "IreneIndex":
         available = self.indexes()
-        if name in available and available[name].path == path:
+        if name in available:
             return IreneIndex(self, name)
-        response = requests.post(self._url("/open"), data={"name": name, "path": path})
-        if response.ok:
-            self.known_open_indexes[name] = path
-            return IreneIndex(self, name)
-        raise ValueError("{0}: {1}".format(response.status_code, response.reason))
+        raise ValueError("Not found index='{}'".format(name))
 
     def tokenize(self, index: str, text: str, field: Optional[str] = None) -> List[str]:
-        params = {"index": index, "text": text}
+        params = {"text": text}
         if field is not None:
             params["field"] = field
-        return requests.get(self._url("/tokenize"), params).json()["terms"]
+        r = requests.get(self._url("/api/tokenize/{}".format(index)), params)
+        if not r.ok:
+            raise ValueError('{}: {}'.format(r.status_code, r.reason)) 
+        return r.json()["terms"]
 
     def doc(self, index: str, name: str) -> Dict[str, Any]:
-        params = {"index": index, "id": name}
-        return requests.get(self._url("/doc"), params).json()
+        params = {"id": name}
+        r = requests.get(self._url("/api/doc/{}".format(index)), params)
+        if not r.ok:
+            raise ValueError('{}: {}'.format(r.status_code, r.reason))
+        return r.json()
+
+    def random(self, index: str) -> str:
+        r = requests.get(self._url("/api/random/{}".format(index)))
+        if not r.ok:
+            raise ValueError('{}: {}'.format(r.status_code, r.reason))
+        return r.json()['name']
 
     def prepare(self, index: str, query: QExpr) -> Dict[str, Any]:
         params = {"index": index, "query": attr.asdict(query)}
-        response = requests.post(self._url("/prepare"), json=params)
-        if response.ok:
-            return response.json()
-        raise ValueError("{0}: {1}".format(response.status_code, response.reason))
+        r = requests.post(self._url("/api/prepare"), json=params)
+        if not r.ok:
+            raise ValueError('{}: {}'.format(r.status_code, r.reason))
+        return r.json()
 
     def query(
         self, index: str, query: Union[Dict, QExpr], depth: int = 50
@@ -71,7 +79,7 @@ class IreneService(object):
 
         # data class QueryRequest(val index: String, val depth: Int, val query: QExpr)
         params = {"index": index, "depth": depth, "query": query}
-        response = requests.post(self._url("/query"), json=params)
+        response = requests.post(self._url("/api/query"), json=params)
         if response.ok:
             r_json = response.json()
             topdocs = r_json["topdocs"]
@@ -79,11 +87,11 @@ class IreneService(object):
         raise ValueError("{0}: {1}".format(response.status_code, response.reason))
 
     def indexes(self) -> Dict[str, IndexInfo]:
-        json = requests.get(self._url("/indexes")).json()
+        json = requests.get(self._url("/api/indexes")).json()
         return dict((k, IndexInfo(**v)) for (k, v) in json.items())
 
     def config(self, index) -> Dict[str, Any]:
-        return requests.get(self._url("/config"), params={"index": index}).json()
+        return requests.get(self._url("/api/config/{}".format(index)))
 
 
 @attr.s
@@ -96,6 +104,9 @@ class IreneIndex(object):
 
     def doc(self, name: str) -> Dict[str, Any]:
         return self.service.doc(self.index, name)
+    
+    def random(self ) -> Dict[str, Any]:
+        return self.service.random(self.index)
 
     def query(self, query: Union[Dict, QExpr], depth: int = 50) -> QueryResponse:
         return self.service.query(self.index, query, depth)

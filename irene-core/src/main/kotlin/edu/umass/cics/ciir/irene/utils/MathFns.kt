@@ -1,11 +1,13 @@
 package edu.umass.cics.ciir.irene.utils
 
+import kotlin.math.*
+
 /**
  * Ideas taken from:
  * http://www.johndcook.com/blog/standard_deviation/
  * @author jfoley
  */
-class StreamingStats() {
+class StreamingStats {
     var n: Long = 0
         private set
     var mean: Double = 0.toDouble()
@@ -20,7 +22,7 @@ class StreamingStats() {
     val variance: Double
         get() = if (n <= 1) 0.0 else sValue / (n - 1).toDouble()
     val standardDeviation: Double
-        get() = Math.sqrt(variance)
+        get() = sqrt(variance)
     val count: Double
         get() = n.toDouble()
 
@@ -41,8 +43,8 @@ class StreamingStats() {
         val oldMean = mean
         val oldS = sValue
 
-        max = Math.max(max, d)
-        min = Math.min(min, d)
+        max = max(max, d)
+        min = min(min, d)
         total += d
 
         // See Knuth TAOCP vol 2, 3rd edition, page 232
@@ -74,8 +76,8 @@ class StreamingStats() {
         this.n = total
         this.mean = newMean
         this.sValue = newS
-        this.max = Math.max(this.max, other.max)
-        this.min = Math.min(this.min, other.min)
+        this.max = max(this.max, other.max)
+        this.min = min(this.min, other.min)
         this.total += other.total
     }
 
@@ -156,20 +158,20 @@ fun safeDiv(x: Int, y: Int): Double = if (x == 0 || y == 0) 0.0 else x.toDouble(
  * max) + w2 * exp(score[2] - max) + .. )
  */
 fun weightedLogSumExp(weights: DoubleArray, scores: DoubleArray): Double {
-    if (scores.size == 0) {
+    if (scores.isEmpty()) {
         throw RuntimeException("weightedLogSumExp was called with a zero length array of scores.")
     }
 
     // find max value - this score will dominate the final score
     var max = Double.NEGATIVE_INFINITY
     for (score in scores) {
-        max = Math.max(score, max)
+        max = max(score, max)
     }
     var sum = 0.0
     for (i in scores.indices) {
-        sum += weights[i] * Math.exp(scores[i] - max)
+        sum += weights[i] * exp(scores[i] - max)
     }
-    sum = max + Math.log(sum)
+    sum = max + ln(sum)
     return sum
 }
 
@@ -190,8 +192,8 @@ fun logSumExp(scores: DoubleArray): Double {
     val max = scores.max() ?: Double.NEGATIVE_INFINITY
     var sum = 0.0
     for (i in scores.indices) {
-        sum += Math.exp(scores[i] - max)
+        sum += exp(scores[i] - max)
     }
-    sum = max + Math.log(sum)
+    sum = max + ln(sum)
     return sum
 }

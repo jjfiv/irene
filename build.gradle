@@ -1,6 +1,6 @@
 allprojects {
   ext {
-    kotlinVersion = "1.3.72"
+    kotlinVersion = "1.4.20"
     luceneVersion = "7.1.0"
     jacksonVersion = "2.10.0.pr1"
   }
@@ -33,9 +33,7 @@ subprojects {
     implementation group: 'org.roaringbitmap', name: 'RoaringBitmap', version: '0.6.39'
 
     implementation group: 'io.javalin', name: 'javalin', version: '3.8.0'
-    implementation 'com.github.ajalt:clikt:2.6.0'
     implementation "org.slf4j:slf4j-simple:1.7.28"
-
 
     // Lucene:
     implementation group: 'org.apache.lucene', name: 'lucene-core', version: luceneVersion
@@ -47,7 +45,8 @@ subprojects {
     implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: jacksonVersion
 
     // Kotlin stdlib
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk7', version: kotlinVersion
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib-jdk8', version: kotlinVersion
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
 
     // Testing:
     testImplementation group: 'junit', name: 'junit', version: '4.12'
@@ -56,7 +55,7 @@ subprojects {
 
   buildscript {
     ext {
-      kotlinVersion = "1.3.72"
+      kotlinVersion = "1.4.20"
     }
     repositories {
       mavenCentral()

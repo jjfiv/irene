@@ -20,22 +20,23 @@ import org.lemurproject.galago.core.retrieval.iterator.CountIterator
 import org.lemurproject.galago.utility.Parameters
 import java.io.Closeable
 import java.util.*
+import kotlin.math.abs
 
 /**
  * @author jfoley.
  */
 
 class CommonTestIndexes : Closeable {
-    private val doc1 = "the quick brown fox jumped over the lazy dog";
-    private val doc2 = "language modeling is the best";
-    private val doc3 = "the fox jumped the language of the brown dog";
+    private val doc1 = "the quick brown fox jumped over the lazy dog"
+    private val doc2 = "language modeling is the best"
+    private val doc3 = "the fox jumped the language of the brown dog"
 
     // This is Galago's default field name, which is required if we want to share stats / prepare with one and execute with the other.
     private val contentsField = "document"
 
     private val docs = listOf(doc1,doc2,doc3)
     val names = ArrayList<String>()
-    val ND: Int get() = names.size
+    val numDocs: Int get() = names.size
     private val gMemIndex = MemoryIndex(pmake {
         set("nonstemming", false)
         set("corpus", true)
@@ -56,9 +57,9 @@ class CommonTestIndexes : Closeable {
         }
 
         IreneIndexer(params).use { writer ->
-            (0 until 10).forEach {
+            (0 until 10).forEach { _ ->
                 val shuf = docs.toMutableList()
-                Collections.shuffle(shuf)
+                shuf.shuffle()
                 docs.forEachIndexed { _, doc ->
                     val name = "doc${names.size}"
                     names.add(name)
@@ -124,11 +125,11 @@ class ScoringTest {
         val resource = CTIResource()
     }
 
-    val EPSILON = 0.0001
+    private val _EPSILON = 0.0001
     private inline fun dblEquals(x: Double, y: Double, orElse: ()->Unit) {
-       if (Math.abs(x-y) > EPSILON) {
+       if (abs(x-y) > _EPSILON) {
            orElse()
-           Assert.assertEquals(x, y, EPSILON)
+           Assert.assertEquals(x, y, _EPSILON)
        }
     }
 
@@ -156,7 +157,7 @@ class ScoringTest {
             val odg = odi.toGalago(index.env)
             //val odg = galagoOd1(listOf(t1, t2));
             val istats = index.irene.getStats(odi)
-            val gstats = index.galago.getNodeStatistics(index.galago.transformQuery(odg, Parameters.create()));
+            val gstats = index.galago.getNodeStatistics(index.galago.transformQuery(odg, Parameters.create()))
             // Galago does this wrong!
             var df = 0L
             var cf = 0L
@@ -190,7 +191,7 @@ class ScoringTest {
                 val udi = UnorderedWindowExpr(listOf(TextExpr(t1), TextExpr(t2)), width)
                 val udg = udi.toGalago(index.env)
                 val istats = index.irene.getStats(udi)
-                val gstats = index.galago.getNodeStatistics(index.galago.transformQuery(udg, Parameters.create()));
+                val gstats = index.galago.getNodeStatistics(index.galago.transformQuery(udg, Parameters.create()))
 
                 val term = "uw:$width($t1 $t2)"
                 Assert.assertEquals("cf $term", gstats.nodeFrequency, istats.cf)
@@ -214,17 +215,17 @@ class ScoringTest {
     }
 
     private fun cmpResults(str: String, gq: GExpr, iq: QExpr, index: CommonTestIndexes) {
-        val search = index.irene.search(iq, index.ND)
+        val search = index.irene.search(iq, index.numDocs)
         val gres = index.galago.transformAndExecuteQuery(gq, pmake {
             set("processingModel", "rankeddocument")
             set("annotate", true)
-            set("requested", index.ND)
+            set("requested", index.numDocs)
         })
-        val gTruth = gres.scoredDocuments.associate { Pair(it.name, it) }
+        val gTruth = gres.scoredDocuments.associateBy { it.name }
 
         if (search.totalHits != gTruth.size.toLong()) {
             val found = search.scoreDocs.map { it.doc }.toSet()
-            println("Irene Found: ${found}")
+            println("Irene Found: $found")
             println("Galago Found: ${gTruth.keys}")
             gTruth.values.forEach { sdoc ->
                 val id = index.irene.documentById(sdoc.name)!!
@@ -327,10 +328,10 @@ class ScoringTest {
             // score everything no matter what:
             val gres = index.galago.transformAndExecuteQuery(iq.toGalago(index.env), pmake {
                 set("annotate", true)
-                set("requested", index.ND)
+                set("requested", index.numDocs)
                 set("working", index.names)
             })
-            val gTruth = gres.scoredDocuments.associate { Pair(it.name, it) }
+            val gTruth = gres.scoredDocuments.associateBy { it.name }
 
             val rrExpr = iq.toRRExpr(index.env)
             val rrScores = index.ltrIndex.associate { Pair(it.name, rrExpr.eval(it)) }
