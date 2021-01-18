@@ -104,7 +104,7 @@ class APITest {
         val found = map["default"]!!
         assertEquals(found.idFieldName, index.idFieldName)
         assertEquals(found.defaultField, index.defaultField)
-        assertNull(found.path)
+        assertEquals("null", found.path)
     }
 
     @Test
