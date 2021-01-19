@@ -223,7 +223,7 @@ class APITest {
             assertEquals(names, names2)
 
             // Second; remote and local are the same:
-            val r = invokePostAPI("/api/sample", SampleRequest(q, "default", depth=n, seed=13L))
+            val r = invokePostAPI("/api/sample", SampleRequest(q, "default", count=n, seed=13L))
             assertEquals(r.status, OK)
             val remoteResults = mapper.readValue(r.bodyString(), SetResponse::class.java)
             assertEquals(localResults.totalOffered.toLong(), remoteResults.totalHits)

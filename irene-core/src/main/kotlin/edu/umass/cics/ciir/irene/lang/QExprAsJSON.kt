@@ -240,6 +240,10 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
         val kind = obj.getStr("kind")
         return when (kind) {
             "Lengths" -> LengthsExpr(obj.getStr("field"))
+            "Must" -> MustExpr(
+                must = interpret_child(obj, "must"),
+                value = interpret_child(obj, "value")
+            )
             "BM25" -> BM25Expr(
                     child = interpret_child(obj),
                     b = obj.doubleOrNull("b"),
@@ -292,7 +296,7 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                 children=interpret_children(obj),
                 width=obj.getInt("width")
             )
-            "Synonym" -> SynonymExpr(interpret_children(obj))
+                "Synonym" -> SynonymExpr(interpret_children(obj))
             "Max" -> MaxExpr(interpret_children(obj))
             "Mult" -> MultExpr(interpret_children(obj))
             "Weight" -> WeightExpr(
