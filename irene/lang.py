@@ -1,39 +1,41 @@
-#%%
 from abc import abstractmethod, ABC
-import attr
+from dataclasses import dataclass, field, asdict
 from typing import List, Optional
 
-@attr.s
-class CountStats(object):
-    source = attr.ib(type=str)
-    cf = attr.ib(type=int)
-    df = attr.ib(type=int)
-    cl = attr.ib(type=int)
-    dc = attr.ib(type=int)
-    
+
+@dataclass
+class CountStats:
+    source: str
+    cf: int
+    df: int
+    cl: int
+    dc: int
+
     def average_doc_len(self):
         if self.dc == 0:
             return 0.0
         return self.cl / self.dc
+
     def count_probability(self):
         if self.cl == 0:
             return 0.0
         return self.cf / self.cl
+
     def nonzero_count_probability(self):
         if self.cl == 0:
             return 0.0
         return max(0.5, self.cf) / self.cl
+
     def binary_probability(self):
         if self.dc == 0:
             return 0.0
         return self.df / self.dc
 
-@attr.s
+
 class QExpr(object):
-    def children(self):
-        return list(attr.asdict(self, recurse=False, filter=lambda attr,x: isinstance(x, QExpr)).values())
     def weighted(self, weight):
         return WeightExpr(child=self, weight=weight)
+
 
 ###
 # Boolean opeartions
@@ -43,167 +45,193 @@ class QExpr(object):
 #  - Consider every doc that has a match IFF cond has a match, using value, regardless of whether value also has a match.
 #  - Implemented by [RequireEval].
 #  - If instead you want to score value only if cond has a match, use [MustExpr] -> [MustEval].
-@attr.s
-class RequireExpr(object):
-    cond = attr.ib(type=QExpr)
-    value = attr.ib(type=QExpr)
-    kind = attr.ib(type=str, default='Require')
+@dataclass
+class RequireExpr(QExpr):
+    cond: QExpr
+    value: QExpr
+    kind: str = "Require"
+
 
 # Score the [value] query when it matches IFF [must] also has a match. This is a logical AND.
-@attr.s
-class MustExpr(object):
-    cond = attr.ib(type=QExpr)
-    value = attr.ib(type=QExpr)
+@dataclass
+class MustExpr(QExpr):
+    must: QExpr
+    value: QExpr
+    kind: str = "Must"
 
-@attr.s
+
+@dataclass
 class AndExpr(QExpr):
-    children: List[QExpr] = attr.ib()
+    children: List[QExpr]
+    kind: str = "And"
 
-@attr.s
+
+@dataclass
 class OrExpr(QExpr):
-    children: List[QExpr] = attr.ib()
+    children: List[QExpr]
+    kind: str = "Or"
+
 
 # AKA: True
-@attr.s
-class AlwaysMatchLeaf(object):
+class AlwaysMatchLeaf(QExpr):
     pass
 
+
 # AKA: False
-@attr.s
-class NeverMatchLeaf(object):
+class NeverMatchLeaf(QExpr):
     pass
+
 
 ###
 # Scoring Transformations
 ###
-
 def SumExpr(children: List[QExpr]):
     N = len(children)
     return CombineExpr(children, [1.0 for _ in children])
+
 
 def MeanExpr(children: List[QExpr]):
     N = len(children)
     return CombineExpr(children, [1.0 / N for _ in children])
 
-@attr.s
+
+@dataclass
 class CombineExpr(QExpr):
-    children: List[QExpr] = attr.ib()
-    weights: List[float] = attr.ib()
-    kind = attr.ib(type=str, default='Combine')
+    children: List[QExpr]
+    weights: List[float]
+    kind: str = "Combine"
 
-@attr.s
+
+@dataclass
 class MultExpr(QExpr):
-    children: List[QExpr] = attr.ib()
-    kind = attr.ib(type=str, default='Mult')
+    children: List[QExpr]
+    kind: str = "Mult"
 
-@attr.s
+
+@dataclass
 class MaxExpr(QExpr):
-    children: List[QExpr] = attr.ib()
-    kind = attr.ib(type=str, default='Max')
+    children: List[QExpr]
+    kind: str = "Max"
 
-@attr.s
+
+@dataclass
 class WeightExpr(QExpr):
-    child = attr.ib(type=QExpr)
-    weight = attr.ib(type=float)
-    kind = attr.ib(type=str, default='Weight')
+    child: QExpr
+    weight: float
+    kind: str = "Weight"
+
 
 ###
 # Leaf Nodes
 ###
 
-@attr.s
+
+@dataclass
 class TextExpr(QExpr):
-    text = attr.ib(type=str)
-    field = attr.ib(type=Optional[str], default=None)
-    stats_field = attr.ib(type=Optional[str], default=None)
-    kind = attr.ib(type=str, default='Text')
+    text: str
+    field: Optional[str] = None
+    stats_field: Optional[str] = None
+    needed: Optional[str] = None
+    kind: str = "Text"
 
-@attr.s
-class BoolExpr(QExpr):
-    field = attr.ib(type=str)
-    desired = attr.ib(type=bool, default=True)
 
-@attr.s
+def BoolExpr(field: str, desired: bool = True):
+    return TextExpr(text="T" if desired else "F", field=field)
+
+
+@dataclass
 class LengthsExpr(QExpr):
-    field = attr.ib(type=str)
+    field: str
 
-@attr.s
+
+@dataclass
 class WhitelistMatchExpr(QExpr):
-    doc_names: List[str] = attr.ib()
+    doc_names: List[str]
 
-@attr.s
+
+@dataclass
 class DenseLongField(QExpr):
-    name = attr.ib(type=str)
-    missing = attr.ib(type=int, default=0)
+    name: str
+    missing: int = 0
+
 
 class DenseFloatField(QExpr):
-    name = attr.ib(type=str)
-    # TODO: how do I float32::min in python?
-    missing = attr.ib(type=float, default=None)
+    name: str
+    missing: Optional[float] = None
+
 
 ###
 # Phrase Nodes
 ###
 
-@attr.s
+
+@dataclass
 class OrderedWindowExpr(QExpr):
-    children: List[QExpr] = attr.ib()
-    step = attr.ib(type=int, default=1)
-    kind = attr.ib(type=str, default="OrderedWindow")
+    children: List[QExpr]
+    step: int = 1
+    kind: str = "OrderedWindow"
 
-@attr.s
+
+@dataclass
 class UnorderedWindowNode(QExpr):
-    children: List[QExpr] = attr.ib()
-    width = attr.ib(type=int, default=8)
-    kind = attr.ib(type=str, default="UnorderedWindow")
+    children: List[QExpr]
+    width: int = 8
+    kind: str = "UnorderedWindow"
 
-@attr.s
+
+@dataclass
 class SmallestCountExpr(QExpr):
-    children: List[QExpr] = attr.ib()
+    children: List[QExpr]
 
-@attr.s
+
+@dataclass
 class SynonymExpr(QExpr):
-    children: List[QExpr] = attr.ib()
-    kind = attr.ib(type=str, default="Synonym")
+    children: List[QExpr]
+    kind: str = "Synonym"
+
 
 ###
 # Scorers
 ###
 
-@attr.s
+
+@dataclass
 class BM25Expr(QExpr):
-    child = attr.ib(type=QExpr)
-    b = attr.ib(type=Optional[float], default=None)
-    k = attr.ib(type=Optional[float], default=None)
-    stats = attr.ib(type=CountStats, default=None)
-    kind = attr.ib(type=str, default='BM25Expr')
+    child: QExpr
+    b: Optional[float] = None
+    k: Optional[float] = None
+    stats: Optional[CountStats] = None
+    kind: str = "BM25"
 
-@attr.s
+
+@dataclass
 class LinearQLExpr(QExpr):
-    child = attr.ib(type=QExpr)
-    lambda_ = attr.ib(type=Optional[float], default=None)
-    stats = attr.ib(type=CountStats, default=None)
-    kind = attr.ib(type=str, default='LinearQL')
+    child: QExpr
+    lambda_: Optional[float] = None
+    stats: Optional[CountStats] = None
+    kind: str = "LinearQL"
 
-@attr.s
+
+@dataclass
 class DirQLExpr(QExpr):
-    child = attr.ib(type=QExpr)
-    mu = attr.ib(type=Optional[float], default=None)
-    stats = attr.ib(type=CountStats, default=None)
-    kind = attr.ib(type=str, default='DirQL')
+    child: QExpr
+    mu: Optional[float] = None
+    stats: Optional[CountStats] = None
+    kind: str = "DirQL"
 
-@attr.s
+
+@dataclass
 class RM3Expr(QExpr):
-    child = attr.ib(type=QExpr)
-    orig_weight = attr.ib(type=float, default=0.3)
-    fb_docs = attr.ib(type=int, default=20)
-    fb_terms = attr.ib(type=int, default=100)
-    stopwords = attr.ib(type=bool, default=True)
-    field = attr.ib(type=Optional[str], default=None)
-    kind = attr.ib(type=str, default='RM3')
+    child: QExpr
+    orig_weight: float = 0.3
+    fb_docs: int = 20
+    fb_terms: int = 100
+    stopwords: bool = True
+    field: Optional[str] = None
+    kind: str = "RM3"
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     expr = WeightExpr(child=TextExpr("hello"), weight=0.5)
     print(expr)
-    print(expr.children())
 #%%
