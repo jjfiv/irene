@@ -20,6 +20,7 @@ import org.junit.rules.ExternalResource
 import java.util.*
 
 
+val TEST_PORT = 50000
 class SharedIndex : ExternalResource() {
     var index: IreneIndex? = null
     var server: Javalin? = null
@@ -28,7 +29,7 @@ class SharedIndex : ExternalResource() {
         .registerModule(QExprModule())
     override fun before() {
         index = makeIndex()
-        server = APIServer.run("localhost", 4444, mapOf("default" to index!!))
+        server = APIServer.run("localhost", TEST_PORT, mapOf("default" to index!!))
     }
     override fun after() {
         server?.stop()
@@ -76,7 +77,7 @@ class APITest {
 
     private fun <T> invokePostAPI(path: String, params: T): Response {
         val client = ApacheClient()
-        var request = Request(Method.POST, "http://localhost:4444${path}")
+        var request = Request(Method.POST, "http://localhost:$TEST_PORT${path}")
         request.header("content-type", "application/json")
         val bodyStr =resource.mapper.writeValueAsString(params)
         request = request.body(bodyStr)
@@ -84,7 +85,7 @@ class APITest {
     }
     private fun invokeGetAPI(path: String, params: Map<String, String> = mapOf()): Response {
         val client = ApacheClient()
-        var request = Request(Method.GET, "http://localhost:4444${path}")
+        var request = Request(Method.GET, "http://localhost:$TEST_PORT${path}")
         for ((k, v) in params) {
             request = request.query(k, v)
         }
@@ -185,6 +186,28 @@ class APITest {
             val remoteResults = mapper.readValue(r.bodyString(), QueryResponse::class.java)
             assertEquals(localResults.totalHits, remoteResults.totalHits)
             assertEquals(localResults.scoreDocs.size, remoteResults.topdocs.size)
+        }
+    }
+
+    @Test
+    fun testQueryPostOffset() {
+        val index = resource.index!!
+        val mapper = resource.mapper
+        val n = 4
+
+        for (text in listOf("a", "b", "c", "d")) {
+            val q = BM25Expr(TextExpr(text))
+            val localResults = index.search(q, n)
+            for (i in 0 until localResults.totalHits.toInt()) {
+                // Ask for 1 result at a time, paging API!
+                val r = invokePostAPI("/api/query", QueryRequest(q, "default", 1, offset=i))
+                assertEquals(r.status, OK)
+                val remoteResults = mapper.readValue(r.bodyString(), QueryResponse::class.java)
+                assertEquals(1, remoteResults.topdocs.size)
+                assertEquals(localResults.totalHits, remoteResults.totalHits)
+                assertNull(remoteResults.topdocs[0].document)
+                assertEquals(index.getDocumentName(localResults.scoreDocs[i].doc), remoteResults.topdocs[0].name)
+            }
         }
     }
 

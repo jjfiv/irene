@@ -11,22 +11,21 @@ import io.javalin.plugin.json.JavalinJackson
 import org.roaringbitmap.RoaringBitmap
 import java.io.File
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.collections.HashMap
 
-val mapper = ObjectMapper()
+val mapper: ObjectMapper = ObjectMapper()
         .registerKotlinModule()
         .registerModule(QExprModule())
 
 data class TokenizeRequest(val text: String, val index: String, val field: String? = null)
 data class TokenizeResponse(val terms: List<String>)
-data class DocResponse(val name: String, val score: Float)
+data class DocResponse(val name: String, val score: Float, var document: Map<String, Any>? = null)
 data class QueryResponse(val topdocs: List<DocResponse>, val totalHits: Long)
 data class SetResponse(val matches: List<String>, val totalHits: Long)
 data class PrepareRequest(val query: QExpr, val index: String)
 data class SampleRequest(val query: QExpr, val index: String, val count: Int, val seed: Long? = null)
-data class QueryRequest(val query: QExpr, val index: String, val depth: Int)
+data class QueryRequest(val query: QExpr, val index: String, val depth: Int, val offset: Int = 0, val getDocuments: Boolean = false)
 data class IndexInfo(val idFieldName: String, val path: String, val defaultField: String)
 data class IndexSpec(val name: String, val path: String, val idFieldName: String?, val defaultField: String?)
 data class ConfigFileContents(val indexes: List<IndexSpec>)
@@ -40,6 +39,10 @@ object APIServer {
         /// Print Exceptions so that debugging is possible / not annoying.
         app.exception(Exception::class.java) { e, _ ->
             e.printStackTrace(System.err)
+        }
+
+        app.get("/api/status") { ctx ->
+            ctx.json(mapOf("status" to "OK"))
         }
 
         app.get("/api/doc/:index") { ctx ->
@@ -122,9 +125,16 @@ object APIServer {
         app.post("/api/query") { ctx ->
             val req = ctx.bodyValidator<QueryRequest>().get()
             val index = indexes[req.index] ?: error("no such index ${req.index}")
-            val results = index.search(req.query, req.depth)
-            val docs = results.scoreDocs.map { sdoc ->
-                DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score)
+            val results = index.search(req.query, req.depth + req.offset)
+            val start = req.offset
+            val end = (req.offset + req.depth).coerceAtMost(results.scoreDocs.size)
+            val docs = results.scoreDocs.slice(start until end).map { sdoc ->
+                var document: Map<String, Any>? = null
+                if (req.getDocuments) {
+                    document = index.docAsMap(sdoc.doc)
+                        ?: error("Index corrupted; document=${sdoc.doc} retrieved but not present.")
+                }
+                DocResponse(index.getDocumentName(sdoc.doc)!!, sdoc.score, document)
             }
             ctx.json(QueryResponse(docs, results.totalHits))
         }

@@ -8,14 +8,13 @@ from dataclasses import dataclass, asdict
 class DocResponse(object):
     name: str
     score: float
+    document: Optional[Dict[str, Any]] = None  # if document asked for...
     rank: int = -1  # assigned on this side to save bandwidth/parsing time.
-
 
 @dataclass
 class SetResponse(object):
     matches: List[str]
     totalHits: int
-
 
 @dataclass
 class QueryResponse(object):
@@ -35,7 +34,6 @@ class IreneService(object):
         self.host = host
         self.port = port
         self.url = "http://{0}:{1}".format(host, port)
-        self.known_open_indexes = {}
 
     def _url(self, path):
         return self.url + path
@@ -109,14 +107,25 @@ class IreneService(object):
         raise ValueError("{0}: {1}".format(response.status_code, response.reason))
 
     def query(
-        self, index: str, query: Union[Dict, QExpr], depth: int = 50
+        self,
+        index: str,
+        query: Union[Dict, QExpr],
+        depth: int = 50,
+        offset: int = 0,
+        get_documents: bool = False,
     ) -> QueryResponse:
         # allow for dict-repr on outside!
         if not isinstance(query, dict):
             query = asdict(query)
 
         # data class QueryRequest(val index: String, val depth: Int, val query: QExpr)
-        params = {"index": index, "depth": depth, "query": query}
+        params = {
+            "index": index,
+            "depth": depth,
+            "query": query,
+            "offset": offset,
+            "getDocuments": get_documents,
+        }
         response = requests.post(self._url("/api/query"), json=params)
         if response.ok:
             r_json = response.json()
@@ -160,8 +169,14 @@ class IreneIndex(object):
     def docset(self, query: Union[Dict, QExpr], n: int) -> SetResponse:
         return self.service.docset(self.index, query, n)
 
-    def query(self, query: Union[Dict, QExpr], depth: int = 50) -> QueryResponse:
-        return self.service.query(self.index, query, depth)
+    def query(
+        self,
+        query: Union[Dict, QExpr],
+        depth: int = 50,
+        offset: int = 0,
+        get_documents: bool = False,
+    ) -> QueryResponse:
+        return self.service.query(self.index, query, depth, offset, get_documents)
 
     def config(self) -> Dict[str, Any]:
         return self.service.config(self.index)
