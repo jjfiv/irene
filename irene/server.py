@@ -131,7 +131,7 @@ class IreneService(object):
             r_json = response.json()
             topdocs = r_json["topdocs"]
             return QueryResponse(
-                [DocResponse(rank=i + 1, **td) for (i, td) in enumerate(topdocs)],
+                [DocResponse(rank=offset + i + 1, **td) for (i, td) in enumerate(topdocs)],
                 r_json["totalHits"],
             )
         raise ValueError("{0}: {1}".format(response.status_code, response.reason))
