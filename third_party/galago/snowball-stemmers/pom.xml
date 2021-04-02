@@ -20,11 +20,6 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
-  <scm>
-    <connection>scm:hg:http://lemur.hg.sourceforge.net:8000/hgroot/lemur/galago</connection>
-    <developerConnection>scm:hg:ssh://USERNAME@lemur.hg.sourceforge.net/hgroot/lemur/galago</developerConnection>
-    <url>http://lemur.hg.sourceforge.net/hgweb/lemur/galago/</url>
-  </scm>
   <reporting>
     <plugins>
       <plugin>

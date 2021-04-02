@@ -1,7 +1,0 @@
-package org.lemurproject.galago.core.types;
-
-type PageRankJumpScore {
-	double score;
-
-	order: +score;
-}
