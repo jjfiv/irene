@@ -1,13 +1,11 @@
 from .server import IreneService
 from .lang import *
-import json
-import attr
 import sys
 
 service = IreneService(port=4444)
 print(service.indexes())
 
-names = ["wiki"]
+names = ["wapo"]
 if len(sys.argv) > 1:
     names = sys.argv[1:]
 
