@@ -57,6 +57,9 @@ public class FSUtil {
   }
 
   public static void deleteDirectory(File directory) throws IOException {
+    if (directory == null) {
+      return;
+    }
     if (directory.isDirectory()) {
       File[] files = directory.listFiles();
       if(files != null) {

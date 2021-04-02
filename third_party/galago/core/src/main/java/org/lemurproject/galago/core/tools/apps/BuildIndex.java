@@ -32,7 +32,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import org.lemurproject.galago.utility.VersionInfo;
 
 /**
  *
@@ -649,11 +648,7 @@ public class BuildIndex extends AppFunction {
       //- Add galago version, version build datetime and index build datetime
       //  to the build Parameters.
       //- Get Galago version, build and index datetime info
-      VersionInfo.setGalagoVersionAndBuildDateTime();
-      buildParameters.set ("galagoVersion", VersionInfo.getGalagoVersion());
-      buildParameters.set ("galagoVersionBuildDateTime", VersionInfo.getGalagoVersionBuildDateTime());
-      buildParameters.set ("indexBuildDateTime", VersionInfo.getIndexBuildDateTime());
-
+      buildParameters.set ("galagoVersion", "MINI-FROZEN-3.16");
       Job job = new Job();
 
       String indexPath = new File(buildParameters.getString("indexPath")).getAbsolutePath();

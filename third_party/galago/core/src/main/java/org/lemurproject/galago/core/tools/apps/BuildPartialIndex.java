@@ -20,8 +20,6 @@ import org.lemurproject.galago.utility.FSUtil;
 import org.lemurproject.galago.utility.Parameters;
 import org.lemurproject.galago.tupleflow.execution.Job;
 
-import org.lemurproject.galago.utility.VersionInfo;
-
 /**
  *
  * @author sjh
@@ -53,7 +51,6 @@ public class BuildPartialIndex extends AppFunction {
       output.println(getHelpString());
       return;
     }
-    VersionInfo.setGalagoVersionAndBuildDateTime ();
     createPartialIndex(p, output);
   }
 
