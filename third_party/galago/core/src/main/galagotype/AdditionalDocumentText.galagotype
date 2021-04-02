@@ -1,0 +1,9 @@
+package org.lemurproject.galago.core.types;
+
+type AdditionalDocumentText {
+    long identifier;
+    String text;
+
+    order: ;
+    order: +identifier;
+};

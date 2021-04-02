@@ -1,0 +1,13 @@
+package org.lemurproject.galago.core.types;
+
+type NumberWordProbability {
+    long number;
+    bytes word;
+    double probability;
+               
+    order: +number +word;
+    order: +word -probability +number;
+    order: -probability +number;
+    order: +number;
+    order: +word;
+}

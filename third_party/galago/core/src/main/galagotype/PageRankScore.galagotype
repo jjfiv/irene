@@ -1,0 +1,10 @@
+package org.lemurproject.galago.core.types;
+
+type PageRankScore {
+	String docName;
+	double score;
+
+	order: +docName;
+  order: +score;
+  order: -score;
+}
