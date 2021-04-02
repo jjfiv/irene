@@ -1,10 +1,10 @@
 
 package org.lemurproject.galago.tupleflow;
 
-import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.lemurproject.galago.utility.FSUtil;
 import org.lemurproject.galago.utility.StreamUtil;
 
+import java.util.concurrent.ConcurrentHashMap;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +19,7 @@ import java.util.logging.Logger;
  */
 public class FileUtility {
   private static final Logger LOG = Logger.getLogger(FileUtility.class.getName());
-  private static final Set<String> roots = new ConcurrentHashSet<>();
+  private static final ConcurrentHashMap<String, Boolean> roots = new ConcurrentHashMap<>();
 
   // dynamically add to the set of roots
   public static void addTemporaryDirectory(String path) {
@@ -27,14 +27,14 @@ public class FileUtility {
     if (!f.isDirectory()) {
       f.mkdirs();
     }
-    roots.add(path);
+    roots.put(path, true);
   }
 
   /** Always choose the largest temporary disk as the "best" temporary location -- a greedy solution */
   public static String getBestTemporaryLocation() throws IOException {
     String maxRoot = null;
     long maxFreeSpace = 0;
-    for (String root : roots) {
+    for (String root : roots.keySet()) {
       long freeSpace = FSUtil.getFreeSpace(root);
       if(freeSpace > maxFreeSpace) {
         maxRoot = root;
@@ -51,7 +51,7 @@ public class FileUtility {
    * @throws IOException
    */
   public static void cleanTemporaryDirectories() throws IOException {
-    for (String root : roots) {
+    for (String root : roots.keySet()) {
       File f = new File(root);
       FSUtil.deleteDirectory(f);
       f.mkdir();
@@ -163,6 +163,6 @@ public class FileUtility {
   }
 
   public static List<String> getRoots() {
-    return new ArrayList<>(roots);
+    return new ArrayList<>(roots.keySet());
   }
 }
