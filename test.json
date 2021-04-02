@@ -1,0 +1,7 @@
+{
+  "indexes": [
+    {"name": "pages", "path": "/Users/jfoley/data/pages.26-01-2021.irene"},
+    {"name": "snippets", "path": "/Users/jfoley/data/poetry50k.snippets.irene"},
+    {"name": "wiki", "path": "/Users/jfoley/data/wiki.irene"}
+  ]
+}

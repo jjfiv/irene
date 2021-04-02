@@ -36,10 +36,14 @@ class QExprSerializer : JsonSerializer<QExpr>() {
             is ConstScoreExpr -> TODO()
             is ConstCountExpr -> TODO()
             is ConstBoolExpr -> TODO()
-            AlwaysMatchLeaf -> TODO()
-            NeverMatchLeaf -> TODO()
+            AlwaysMatchLeaf -> gen.writeStringField("kind", "AlwaysMatchLeaf")
+            NeverMatchLeaf -> gen.writeStringField("kind", "NeverMatchLeaf")
             is WhitelistMatchExpr -> TODO()
-            is DenseLongField -> TODO()
+            is DenseLongField -> {
+                gen.writeStringField("kind", "DenseLongField")
+                gen.writeStringField("name", q.name)
+                gen.writeNumberField("missing", q.missing)
+            }
             is DenseFloatField -> TODO()
             is LengthsExpr -> {
                 gen.writeStringField("kind", "Lengths")
@@ -99,7 +103,11 @@ class QExprSerializer : JsonSerializer<QExpr>() {
                 gen.writeObjectField("child", q.child)
                 gen.writeNumberField("weight", q.weight)
             }
-            is CountEqualsExpr -> TODO()
+            is CountEqualsExpr -> {
+                gen.writeStringField("kind", "CountEquals")
+                gen.writeObjectField("child", q.child)
+                gen.writeNumberField("target", q.target)
+            }
             is LogValueExpr -> TODO()
             is DirQLExpr -> {
                 gen.writeStringField("kind", "DirQL")
@@ -261,6 +269,14 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                     mu = obj.doubleOrNull("mu"),
                     stats = obj.statsOrNull()
             )
+            "DenseLongField" -> DenseLongField(
+                name=obj.stringOrNull("name") ?: error("Required parameter: 'name'"),
+                missing=obj.getInt("missing").toLong(),
+            )
+            "CountEquals" -> CountEqualsExpr(
+                child=interpret_child(obj),
+                target=obj.getInt("target"),
+            )
             "Text" -> TextExpr(
                     text = obj.getStr("text"),
                     field = obj.stringOrNull("field"),
@@ -296,7 +312,9 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                 children=interpret_children(obj),
                 width=obj.getInt("width")
             )
-                "Synonym" -> SynonymExpr(interpret_children(obj))
+            "Synonym" -> SynonymExpr(interpret_children(obj))
+            "Or" -> OrExpr(interpret_children(obj))
+            "And" -> AndExpr(interpret_children(obj))
             "Max" -> MaxExpr(interpret_children(obj))
             "Mult" -> MultExpr(interpret_children(obj))
             "Weight" -> WeightExpr(
