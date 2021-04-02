@@ -7,8 +7,6 @@ import org.lemurproject.galago.utility.FSUtil;
 import org.lemurproject.galago.utility.Parameters;
 import org.lemurproject.galago.tupleflow.Utility;
 import org.lemurproject.galago.tupleflow.execution.StageGroupDescription.DataPipeRegion;
-import org.lemurproject.galago.tupleflow.web.WebServer;
-import org.lemurproject.galago.tupleflow.web.WebServerException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -1089,25 +1087,6 @@ public class JobExecutor {
         }
     }
 
-    public void runWithServer(StageExecutor executor, String command, Parameters argp) throws WebServerException, ExecutionException, InterruptedException {
-        JobExecutionStatus status = new JobExecutionStatus(stages, temporaryStorage, executor, command);
-        MasterWebHandler handler = new MasterWebHandler(status);
-        WebServer webServer = null;
-
-        try {
-            webServer = WebServer.start(argp, handler);
-            status.masterURL = webServer.getURL();
-            System.out.println("WebServer @ " + webServer.getURL());
-            status.run();
-            handler.waitForFinalPage();
-            webServer.stop();
-        } finally {
-            if (webServer != null) {
-                webServer.stop();
-            }
-        }
-    }
-
     public void runWithoutServer(StageExecutor executor) throws ExecutionException, InterruptedException {
         JobExecutionStatus status = new JobExecutionStatus(stages, temporaryStorage, executor, null);
         status.run();
@@ -1147,20 +1126,11 @@ public class JobExecutor {
             return false;
         }
 
-        if (p.get("server", false)) {
-            try {
-                jobExecutor.runWithServer(executor, command, p);
-            } finally {
-                executor.shutdown();
-            }
-        } else {
-            System.out.println("Running without server!\nUse --server=true to enable web-based status page.");
-            try {
-                jobExecutor.runWithoutServer(executor);
-            } finally {
-                executor.shutdown();
-            }
-        }
+          try {
+              jobExecutor.runWithoutServer(executor);
+          } finally {
+              executor.shutdown();
+          }
 
         if (p.get("deleteJobDir", true) && !store.hasStatements()) {
             FSUtil.deleteDirectory(tempFolder);

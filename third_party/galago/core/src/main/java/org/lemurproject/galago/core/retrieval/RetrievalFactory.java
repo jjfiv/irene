@@ -3,7 +3,6 @@ package org.lemurproject.galago.core.retrieval;
 
 import org.lemurproject.galago.utility.Parameters;
 
-import java.lang.reflect.Proxy;
 import java.util.*;
 
 /**
@@ -68,21 +67,11 @@ public class RetrievalFactory {
   /* get retrieval object
    * cases:
    *  1 index path - local
-   *  1 index path - proxy
    *  many index paths - multi - locals
    *  many index paths - multi - proxies
    */
   public static Retrieval instance(String path, Parameters parameters) throws Exception {
-    if (path.startsWith("http://")) {
-      // create a proxy, using the ProxyRetrieval as the InvocationHandler
-      ProxyRetrieval ih = new ProxyRetrieval(path, parameters);
-      Retrieval asRetrieval = (Retrieval) Proxy.newProxyInstance(Retrieval.class.getClassLoader(),
-              new Class[]{Retrieval.class}, ih);
-      ih.setRetrieval(asRetrieval);
-      return asRetrieval;
-    } else {
-      return new LocalRetrieval(path, parameters);
-    }
+    return new LocalRetrieval(path, parameters);
   }
 	
 	public static Retrieval instance(String path) throws Exception {
