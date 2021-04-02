@@ -312,7 +312,9 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                 children=interpret_children(obj),
                 width=obj.getInt("width")
             )
-                "Synonym" -> SynonymExpr(interpret_children(obj))
+            "Synonym" -> SynonymExpr(interpret_children(obj))
+            "Or" -> OrExpr(interpret_children(obj))
+            "And" -> AndExpr(interpret_children(obj))
             "Max" -> MaxExpr(interpret_children(obj))
             "Mult" -> MultExpr(interpret_children(obj))
             "Weight" -> WeightExpr(
