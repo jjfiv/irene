@@ -5,7 +5,6 @@ package org.lemurproject.galago.core.tools.apps;
 
 import org.lemurproject.galago.utility.tools.AppFunction;
 import org.lemurproject.galago.core.tools.Search;
-import org.lemurproject.galago.core.tools.SearchWebHandler;
 import org.lemurproject.galago.core.tools.StreamContextHandler;
 import org.lemurproject.galago.utility.Parameters;
 import org.lemurproject.galago.tupleflow.web.WebHandler;
@@ -61,7 +60,6 @@ public class SearchFn extends AppFunction {
 
     Search search = new Search(p);
     final StreamContextHandler streamHandler = new StreamContextHandler(search);
-    final SearchWebHandler searchHandler = new SearchWebHandler(search);
 
     WebServer server = WebServer.start(p, new WebHandler() {
       @Override
@@ -70,8 +68,6 @@ public class SearchFn extends AppFunction {
           response.setStatus(200);
         } else if(request.getPathInfo().equals("/stream")) {
           streamHandler.handle(request, response);
-        } else {
-          searchHandler.handle(request, response);
         }
       }
     });

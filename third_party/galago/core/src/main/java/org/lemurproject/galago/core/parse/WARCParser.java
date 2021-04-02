@@ -52,8 +52,8 @@ public class WARCParser extends DocumentStreamParser {
     totalNumBytesRead += (long) record.getTotalRecordLength();
 
     Document doc = new Document(record.getHeaderMetadataItem("WARC-TREC-ID"), record.getContentUTF8());
-    doc.metadata = new HashMap<String,String>();
-    for(Entry<String, String> entry : record.getHeaderMetadata()){
+    doc.metadata = new HashMap<String, String>();
+    for (Entry<String, String> entry : record.getHeaderMetadata()) {
       doc.metadata.put(entry.getKey(), entry.getValue());
     }
     doc.metadata.put("url", record.getHeaderMetadataItem("WARC-Target-URI"));
@@ -61,31 +61,31 @@ public class WARCParser extends DocumentStreamParser {
     // extract html header from the document
     String text = doc.text;
     Matcher matcher = Pattern.compile("\n\n|\r\n\r\n").matcher(text);
-    if(matcher.find(0)){
+    if (matcher.find(0)) {
       int start = matcher.start();
       int end = matcher.end();
-      
+
       String header = text.substring(0, end);
       String body = text.substring(end);
-      
+
       doc.metadata.put("dochdr", header);
       doc.text = body;
     }
-    
+
     return doc;
   }
-  
+
   /**
    * Test function for parser.
    */
-  public static void main(String[] args) throws IOException{
-    if(args.length < 1){
+  public static void main(String[] args) throws IOException {
+    if (args.length < 1) {
       System.out.println("Usage: <filename.warc>");
       return;
     }
-    
+
     File f = new File(args[0]);
-    if(!f.isFile()){
+    if (!f.isFile()) {
       System.out.println("File does not exist");
       System.out.println("Usage: <filename.warc>");
       return;
@@ -94,15 +94,16 @@ public class WARCParser extends DocumentStreamParser {
     DocumentSplit split = new DocumentSplit();
     split.fileName = f.getAbsolutePath();
     split.fileType = "warc";
-    WARCParser parser = new WARCParser(split, Parameters.create());
-    Document d;
-    while((d = parser.nextDocument()) != null){
-      System.out.format( "NAME-:\n%s\n---\n", d.name );
-      System.out.format( "META-DATA-:\n");
-      for(String key : d.metadata.keySet()){
-        System.out.format( "%s -: %s\n", key, d.metadata.get(key));
+    try (WARCParser parser = new WARCParser(split, Parameters.create())) {
+      Document d;
+      while ((d = parser.nextDocument()) != null) {
+        System.out.format("NAME-:\n%s\n---\n", d.name);
+        System.out.format("META-DATA-:\n");
+        for (String key : d.metadata.keySet()) {
+          System.out.format("%s -: %s\n", key, d.metadata.get(key));
+        }
+        System.out.format("TEXT-:\n%s\n---\n", d.text);
       }
-      System.out.format( "TEXT-:\n%s\n---\n", d.text );
     }
   }
 }

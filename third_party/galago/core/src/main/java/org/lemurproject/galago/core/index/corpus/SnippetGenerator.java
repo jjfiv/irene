@@ -223,14 +223,15 @@ public class SnippetGenerator {
     document.text = text;
 
     // Tokenize the document
-    TagTokenizer tokenizer = new TagTokenizer();
-    tokenizer.process(document);
+    try (TagTokenizer tokenizer = new TagTokenizer()) {
+      tokenizer.process(document);
 
-    if (positions != null) {
-      positions.addAll(tokenizer.getTokenPositions());
-    }
-    if (stemming) {
-      document = stemmer.stem(document);
+      if (positions != null) {
+        positions.addAll(tokenizer.getTokenPositions());
+      }
+      if (stemming) {
+        document = stemmer.stem(document);
+      }
     }
 
     return document;

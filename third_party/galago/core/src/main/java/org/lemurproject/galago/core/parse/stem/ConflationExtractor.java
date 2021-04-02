@@ -45,6 +45,7 @@ public class ConflationExtractor extends StandardStep<Document, KeyValuePair> {
         String stemmerClass = parameters.getJSON().getString("stemmerClass");
         Object newInstance = Class.forName(stemmerClass).getConstructor().newInstance();
         Stemmer s = (Stemmer) newInstance;
+        s.close();
       } catch (Exception e) {
         store.addError(ConflationExtractor.class.getName() + " failed to get stemmer instance.\n" + e.toString());
       }

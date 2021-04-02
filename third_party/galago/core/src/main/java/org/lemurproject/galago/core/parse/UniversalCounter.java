@@ -50,7 +50,6 @@ public class UniversalCounter extends StandardStep<DocumentSplit, KeyValuePair> 
     {"trecweb", TrecWebParser.class.getName()},
     {"twitter", TwitterParser.class.getName()},
     {"corpus", CorpusSplitParser.class.getName()},
-    {"wiki", WikiParser.class.getName()}
   };
   private HashMap<String, Class> documentStreamParser;
   private Counter documentCounter;

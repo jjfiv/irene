@@ -56,7 +56,7 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
     ArrayList<DocumentSplit> splitBuffer = new ArrayList<>();
     Parameters conf = parameters.getJSON();
 
-    //logger.log(Level.INFO, parameters.getJSON().toString());
+    // logger.log(Level.INFO, parameters.getJSON().toString());
 
     List<String> paths = parameters.getJSON().getAsList("inputPath", String.class);
     for (String input : paths) {
@@ -78,7 +78,7 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
     // now process each file
     for (DocumentSplit split : splitBuffer) {
       inputCounter.increment();
-      if(split.fileType == null)
+      if (split.fileType == null)
         split.fileType = "";
       split.fileId = fileId;
       split.totalFileCount = totalFileCount;
@@ -90,11 +90,12 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
 
   public static List<DocumentSplit> processDirectory(File root, Parameters conf) throws IOException {
     System.out.println("Processing directory: " + root);
-    
+
     // add detection of likely corpus folders
-    if(root.getName().endsWith("corpus")) {
-      if(SplitBTreeReader.isBTree(root)) {
-        System.out.println(" * Treating as a corpus (this will skip any other files that happen to be in that directory)");
+    if (root.getName().endsWith("corpus")) {
+      if (SplitBTreeReader.isBTree(root)) {
+        System.out
+            .println(" * Treating as a corpus (this will skip any other files that happen to be in that directory)");
         return processCorpusFile(root, conf);
         // don't process children, they're part of the corpus
       }
@@ -118,7 +119,7 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
 
   public static List<DocumentSplit> processFile(File fp, Parameters conf) throws IOException {
     // Be smart here, so we delegate to processDirectory as needed.
-    if(fp.isDirectory()) {
+    if (fp.isDirectory()) {
       return processDirectory(fp, conf);
     }
 
@@ -128,17 +129,16 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
 
     ArrayList<DocumentSplit> documents = new ArrayList<>();
 
-
     // First, make sure this file exists. If not, whine about it.
     if (!fp.exists()) {
       switch (inputPolicy) {
-        case "require":
-          throw new IOException(String.format("File %s was not found. Exiting.\n", fp));
-        case "warn":
-          logger.warning(String.format("File %s was not found. Skipping.\n", fp));
-          return Collections.emptyList();
-        default:
-          throw new IllegalArgumentException("No such inputPolicy=" + inputPolicy);
+      case "require":
+        throw new IOException(String.format("File %s was not found. Exiting.\n", fp));
+      case "warn":
+        logger.warning(String.format("File %s was not found. Skipping.\n", fp));
+        return Collections.emptyList();
+      default:
+        throw new IllegalArgumentException("No such inputPolicy=" + inputPolicy);
       }
     }
 
@@ -189,8 +189,8 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
     if (fileType != null) {
       DocumentSplit split = DocumentSplitFactory.file(fp, fileType);
       return Collections.singletonList(split);
-    }else {
-        logger.warning(String.format("No parser found for file extension: %s.\n", extension));
+    } else {
+      logger.warning(String.format("No parser found for file extension: %s.\n", extension));
     }
 
     return Collections.emptyList();
@@ -223,8 +223,8 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
   }
 
   /**
-   * This is a list file, meaning we need to iterate over its contents to
-   * retrieve the file list.
+   * This is a list file, meaning we need to iterate over its contents to retrieve
+   * the file list.
    *
    * Assumptions: Each line in this file should be a filename, NOT a directory.
    * List file is either uncompressed or compressed using gzip ONLY.
@@ -245,8 +245,8 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
       if (entry.length() == 0) {
         continue;
       }
-      if(n % 1000 == 0) {
-        logger.log(Level.INFO, "considered {0} items from {1}", new Object[]{n, file});
+      if (n % 1000 == 0) {
+        logger.log(Level.INFO, "considered {0} items from {1}", new Object[] { n, file });
       }
       splits.addAll(processFile(new File(entry), conf));
       n++;
@@ -257,83 +257,84 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
   }
 
   private static List<DocumentSplit> processSubCollectionFile(File file, Parameters conf) throws IOException {
-    BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))));
-    // Look for a fraction and an absolute number of docs
-    double pctthreshold = conf.get("pct", 1.0);
-    long numdocs = conf.get("numdocs", -1);
+    try (
+        BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(new FileInputStream(file))))) {
+      // Look for a fraction and an absolute number of docs
+      double pctthreshold = conf.get("pct", 1.0);
+      long numdocs = conf.get("numdocs", -1);
 
-    System.out.printf("pct: %f, numdocs=%d\n", pctthreshold, numdocs);
+      System.out.printf("pct: %f, numdocs=%d\n", pctthreshold, numdocs);
 
-    File f;
-    long prevRunning, running;
-    double prevfrac, frac;
+      File f;
+      long prevRunning, running;
+      double prevfrac, frac;
 
-    running = 0;
-    frac = 0.0;
-    long splitsize;
+      running = 0;
+      frac = 0.0;
+      long splitsize;
 
-    List<DocumentSplit> splits = new ArrayList<>();
+      List<DocumentSplit> splits = new ArrayList<>();
 
-    // Favor the absolute # variable (second one)
-    while (br.ready()) {
-      splitsize = 0;
-      String[] parts = br.readLine().split(":");
-      prevRunning = running;
-      running = Long.parseLong(parts[1]);
-      prevfrac = frac;
-      frac = Double.parseDouble(parts[2]);
-      f = new File(parts[0]);
+      // Favor the absolute # variable (second one)
+      while (br.ready()) {
+        splitsize = 0;
+        String[] parts = br.readLine().split(":");
+        prevRunning = running;
+        running = Long.parseLong(parts[1]);
+        prevfrac = frac;
+        frac = Double.parseDouble(parts[2]);
+        f = new File(parts[0]);
 
-      if (numdocs > 0) {
-        if (running <= numdocs) {
-          splits.addAll(processFile(f, conf));
-        } else if (prevRunning < numdocs) {
-          splitsize = numdocs - prevRunning;
-        }
-      } else if (pctthreshold < 1.0) {
-        if (frac <= pctthreshold) {
-          splits.addAll(processFile(f, conf));
-        } else if (prevfrac < pctthreshold) {
-          // Works out the number of needed docs to meet the proper pct
-          splitsize = Math.round((running * (pctthreshold / frac)) - prevRunning);
-        }
-      } else {
-        splits.addAll(processFile(f, conf));
-      }
-
-      // Delayed processing - somewhere we set the splitsize, and now we create and process the split
-      if (splitsize > 0) {
-        // First, make sure this file exists. If not, whine about it and move on
-        if (!f.exists()) {
-          throw new IOException(String.format("File %s was not found. Exiting.\n", f));
-        }
-
-
-        // Now try to detect what kind of file this is:
-        String forceFileType = conf.get("filetype", (String) null);
-        String fileType;
-        // We'll try to detect by extension first, so we don't have to open the file
-        String extension = FSUtil.getExtension(file);
-        if (forceFileType != null) {
-          fileType = forceFileType;
-        } else if (DocumentStreamParser.hasParserForExtension(extension)) {
-          fileType = extension;
+        if (numdocs > 0) {
+          if (running <= numdocs) {
+            splits.addAll(processFile(f, conf));
+          } else if (prevRunning < numdocs) {
+            splitsize = numdocs - prevRunning;
+          }
+        } else if (pctthreshold < 1.0) {
+          if (frac <= pctthreshold) {
+            splits.addAll(processFile(f, conf));
+          } else if (prevfrac < pctthreshold) {
+            // Works out the number of needed docs to meet the proper pct
+            splitsize = Math.round((running * (pctthreshold / frac)) - prevRunning);
+          }
         } else {
-          fileType = detectTrecTextOrWeb(StreamCreator.openInputStream(file), file.getAbsolutePath());
-          // Eventually it'd be nice to do more format detection here.
+          splits.addAll(processFile(f, conf));
         }
 
-        if (fileType != null) {
-          DocumentSplit split = DocumentSplitFactory.file(file, fileType);
-          split.startKey = ByteUtil.fromString("subcoll");
-          split.endKey = VByte.compressLong(splitsize);
-          splits.add(split);
+        // Delayed processing - somewhere we set the splitsize, and now we create and
+        // process the split
+        if (splitsize > 0) {
+          // First, make sure this file exists. If not, whine about it and move on
+          if (!f.exists()) {
+            throw new IOException(String.format("File %s was not found. Exiting.\n", f));
+          }
+
+          // Now try to detect what kind of file this is:
+          String forceFileType = conf.get("filetype", (String) null);
+          String fileType;
+          // We'll try to detect by extension first, so we don't have to open the file
+          String extension = FSUtil.getExtension(file);
+          if (forceFileType != null) {
+            fileType = forceFileType;
+          } else if (DocumentStreamParser.hasParserForExtension(extension)) {
+            fileType = extension;
+          } else {
+            fileType = detectTrecTextOrWeb(StreamCreator.openInputStream(file), file.getAbsolutePath());
+            // Eventually it'd be nice to do more format detection here.
+          }
+
+          if (fileType != null) {
+            DocumentSplit split = DocumentSplitFactory.file(file, fileType);
+            split.startKey = ByteUtil.fromString("subcoll");
+            split.endKey = VByte.compressLong(splitsize);
+            splits.add(split);
+          }
         }
       }
-    }
-    br.close();
 
-    return splits;
+      return splits;
+    }
   }
 
   private static List<DocumentSplit> processCorpusFile(File file, Parameters conf) throws IOException {
@@ -346,8 +347,8 @@ public class DocumentSource implements ExNihiloSource<DocumentSplit> {
     List<IndexBlockInfo> slots = vocabulary.getSlots();
     ArrayList<byte[]> keys = new ArrayList<>();
 
-    if(slots.isEmpty()) {
-      throw new IllegalArgumentException("Input Corpus file: "+file+" has an empty vocabulary...");
+    if (slots.isEmpty()) {
+      throw new IllegalArgumentException("Input Corpus file: " + file + " has an empty vocabulary...");
     }
 
     // look for a manually specified number of corpus pieces:
