@@ -7,3 +7,6 @@ nb-configuration.xml
 .idea
 *.prj
 *.trecrun
+.settings
+.vscode
+.project
