@@ -2,11 +2,8 @@
 
 set -eu
 
-# Download Galago 3.16
-git submodule update --init --recursive
-
 # Build it and install.
-cd galago
-mvn install -q -DskipTests -Ddependency-check.skip=true
-cd ..
+cd third_party/galago
+mvn install -q -DskipTests
+cd ../..
 

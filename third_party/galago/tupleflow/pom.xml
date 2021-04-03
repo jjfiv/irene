@@ -1,17 +1,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.lemurproject</groupId>
-    <artifactId>galago</artifactId>
-    <version>3.16</version>
+    <groupId>com.github.jjfiv</groupId>
+    <artifactId>galago4</artifactId>
+    <version>4.0</version>
   </parent>
-  <groupId>org.lemurproject.galago</groupId>
+  <groupId>com.github.jjfiv.galago4</groupId>
   <artifactId>tupleflow</artifactId>
   <packaging>jar</packaging>
-  <version>3.16</version>
+  <version>4.0</version>
   <name>tupleflow</name>
-  <url>http://lemurproject.org/galago.php</url>
-  <description>TupleFlow is the distributed computation layer of Galago.</description>
   <licenses>
     <license>
       <name>BSD license</name>
@@ -19,11 +17,6 @@
       <distribution>repo</distribution>
     </license>
   </licenses>
-  <scm>
-    <connection>scm:hg:http://lemur.hg.sourceforge.net:8000/hgroot/lemur/galago</connection>
-    <developerConnection>scm:hg:ssh://USERNAME@lemur.hg.sourceforge.net/hgroot/lemur/galago</developerConnection>
-    <url>http://lemur.hg.sourceforge.net/hgweb/lemur/galago/</url>
-  </scm>
   <dependencies>
     <dependency>
       <groupId>net.sf.trove4j</groupId>
