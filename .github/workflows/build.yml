@@ -9,8 +9,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v1
-    - name: Install vendored Galago
-      run: ./install_galago
     - name: run tests
       run: ./gradlew test
     - name: gradle shadowJar

@@ -1,15 +1,9 @@
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
-def galagoVersion = "3.16"
-
 dependencies {
   implementation project(":irene-core")
-  implementation(group: 'org.lemurproject.galago', name: 'core', version: galagoVersion) {
-    // This is pretty opinionated, but it's like several gigs.
-    exclude(module: 'stanford-corenlp')
-    exclude(module: 'bliki-core')
-  }
+  implementation('com.github.jjfiv:retired-galago:24ef67d0a8')
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
