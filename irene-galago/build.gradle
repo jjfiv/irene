@@ -3,7 +3,7 @@ apply plugin: 'kotlin'
 
 dependencies {
   implementation project(":irene-core")
-  implementation('com.github.jjfiv:retired-galago:24ef67d0a8')
+  implementation('com.github.jjfiv:retired-galago:2021.04')
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
