@@ -21,6 +21,7 @@ trash
 __pycache__
 .mypy_cache
 /queries
-build/
+/build/
+/irene*/build/
 /dist/
 .gradle

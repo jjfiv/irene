@@ -1,9 +1,0 @@
-#!/bin/bash
-
-set -eu
-
-# Build it and install.
-cd third_party/galago
-mvn install -q -DskipTests
-cd ../..
-

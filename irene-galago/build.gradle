@@ -1,11 +1,9 @@
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
-def galagoVersion = "4.0"
-
 dependencies {
   implementation project(":irene-core")
-  implementation(group: 'com.github.jjfiv.galago4', name: 'core', version: galagoVersion)
+  implementation('com.github.jjfiv:retired-galago:24ef67d0a8')
 }
 
 tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
