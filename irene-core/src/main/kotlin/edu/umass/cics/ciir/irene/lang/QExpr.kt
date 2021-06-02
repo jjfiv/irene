@@ -150,8 +150,8 @@ sealed class ConstExpr() : LeafExpr() { }
 data class ConstScoreExpr(var x: Double): ConstExpr() {
     override fun copyLeaf(): QExpr = ConstScoreExpr(x)
 }
-data class ConstCountExpr(var x: Int, val lengths: LengthsExpr): ConstExpr() {
-    override fun copyLeaf(): QExpr = ConstCountExpr(x, lengths)
+data class ConstCountExpr(var x: Int): ConstExpr() {
+    override fun copyLeaf(): QExpr = ConstCountExpr(x)
 }
 data class ConstBoolExpr(var x: Boolean): ConstExpr() {
     override fun copyLeaf(): QExpr = ConstBoolExpr(x)
@@ -314,6 +314,7 @@ data class OrderedWindowExpr(override var children: List<QExpr>, var step: Int=1
 data class UnorderedWindowExpr(override var children: List<QExpr>, var width: Int=8) : OpExpr() {
 }
 
+/** [ProxWindow] */
 data class ProxExpr(override var children: List<QExpr>, var width: Int=8): OpExpr() {
 }
 

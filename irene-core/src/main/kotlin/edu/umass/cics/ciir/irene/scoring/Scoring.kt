@@ -120,11 +120,11 @@ interface LongEvalNode : QueryEvalNode {
     override fun count(env: ScoringEnv): Int = value(env).toInt()
 }
 
-class ConstCountEvalNode(val count: Int, val lengths: QueryEvalNode) : LeafEvalNode(), CountEvalNode {
+class ConstCountEvalNode(val count: Int, val numDocs: Int) : LeafEvalNode(), CountEvalNode {
     override fun count(env: ScoringEnv): Int = count
-    override fun matches(env: ScoringEnv): Boolean = lengths.matches(env)
-    override fun explain(env: ScoringEnv): Explanation = Explanation.match(count.toFloat(), "ConstCountEvalNode", listOf(lengths.explain(env)))
-    override fun estimateDF(): Long = lengths.estimateDF()
+    override fun matches(env: ScoringEnv): Boolean = true
+    override fun explain(env: ScoringEnv): Explanation = Explanation.match(count.toFloat(), "ConstCountEvalNode")
+    override fun estimateDF(): Long = numDocs.toLong()
 }
 
 class ConstTrueNode(val numDocs: Int) : LeafEvalNode() {

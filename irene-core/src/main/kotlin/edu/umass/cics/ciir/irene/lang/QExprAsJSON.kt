@@ -32,19 +32,57 @@ class QExprSerializer : JsonSerializer<QExpr>() {
         }
         gen.writeStartObject()
         when (q) {
-            is MultiExpr -> TODO()
-            is ConstScoreExpr -> TODO()
-            is ConstCountExpr -> TODO()
-            is ConstBoolExpr -> TODO()
+            is MultiExpr -> {
+                gen.writeStringField("kind", "Multi")
+                gen.writeObjectFieldStart("named_exprs")
+                for ((name, expr) in q.namedExprs) {
+                    gen.writeObjectFieldStart(name)
+                    serialize(expr, gen, serializers)
+                    gen.writeEndObject()
+                }
+                gen.writeEndObject()
+            }
+            is ConstScoreExpr -> {
+                gen.writeStringField("kind", "ConstScore")
+                gen.writeNumberField("value", q.x)
+            }
+            is ConstCountExpr -> {
+                gen.writeStringField("kind", "ConstCount")
+                gen.writeNumberField("value", q.x)
+            }
+            is ConstBoolExpr -> {
+                gen.writeStringField("kind", "ConstBool")
+                gen.writeBooleanField("value", q.x)
+            }
             AlwaysMatchLeaf -> gen.writeStringField("kind", "AlwaysMatchLeaf")
             NeverMatchLeaf -> gen.writeStringField("kind", "NeverMatchLeaf")
-            is WhitelistMatchExpr -> TODO()
+            is WhitelistMatchExpr -> {
+                gen.writeStringField("kind", "WhitelistMatch")
+                q.docIdentifiers?.let { it ->
+                    gen.writeArrayFieldStart("ids")
+                    for (num in it) {
+                        gen.writeNumber(num)
+                    }
+                    gen.writeEndArray()
+                }
+                q.docNames?.let { it ->
+                    gen.writeArrayFieldStart("names")
+                    for (name in it) {
+                        gen.writeString(name)
+                    }
+                    gen.writeEndArray()
+                }
+            }
             is DenseLongField -> {
                 gen.writeStringField("kind", "DenseLongField")
                 gen.writeStringField("name", q.name)
                 gen.writeNumberField("missing", q.missing)
             }
-            is DenseFloatField -> TODO()
+            is DenseFloatField -> {
+                gen.writeStringField("kind", "DenseFloatField")
+                gen.writeStringField("name", q.name)
+                gen.writeNumberField("missing", q.missing)
+            }
             is LengthsExpr -> {
                 gen.writeStringField("kind", "Lengths")
                 gen.writeStringField("stats_field", q.statsField)
@@ -56,7 +94,10 @@ class QExprSerializer : JsonSerializer<QExpr>() {
                 gen.writeStringField("stats_field", q.statsField)
                 gen.writeStringField("needed", q.needed.name)
             }
-            is LuceneExpr -> TODO()
+            is LuceneExpr -> {
+                gen.writeStringField("kind", "Lucene")
+                gen.writeStringField("query", q.rawQuery)
+            }
             is SynonymExpr -> {
                 gen.writeStringField("kind", "Synonym")
                 writeChildren(q)
@@ -84,8 +125,15 @@ class QExprSerializer : JsonSerializer<QExpr>() {
                 gen.writeStringField("kind", "Max")
                 writeChildren(q)
             }
-            is SmallerCountExpr -> TODO()
-            is UnorderedWindowCeilingExpr -> TODO()
+            is SmallerCountExpr -> {
+                gen.writeStringField("kind", "SmallerCount")
+                writeChildren(q)
+            }
+            is UnorderedWindowCeilingExpr -> {
+                gen.writeStringField("kind", "UnorderedWindowCeiling")
+                gen.writeNumberField("width", q.width)
+                writeChildren(q)
+            }
             is OrderedWindowExpr -> {
                 gen.writeStringField("kind", "OrderedWindow")
                 gen.writeNumberField("step", q.step)
@@ -96,7 +144,11 @@ class QExprSerializer : JsonSerializer<QExpr>() {
                 gen.writeNumberField("width", q.width)
                 writeChildren(q)
             }
-            is ProxExpr -> TODO()
+            is ProxExpr -> {
+                gen.writeStringField("kind", "Prox")
+                gen.writeNumberField("width", q.width)
+                writeChildren(q)
+            }
             is LongLTE -> TODO()
             is WeightExpr -> {
                 gen.writeStringField("kind", "Weight")
@@ -273,6 +325,10 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                 name=obj.stringOrNull("name") ?: error("Required parameter: 'name'"),
                 missing=obj.getInt("missing").toLong(),
             )
+            "DenseFloatField" -> DenseFloatField(
+                name=obj.stringOrNull("name") ?: error("Required parameter: 'name'"),
+                missing=obj.doubleOrNull("missing")?.toFloat() ?: -Float.MAX_VALUE,
+            )
             "CountEquals" -> CountEqualsExpr(
                 child=interpret_child(obj),
                 target=obj.getInt("target"),
@@ -289,6 +345,9 @@ class QExprDeserializer : JsonDeserializer<QExpr>() {
                         else -> error("DataNeeded = ${obj.stringOrNull("needed")}")
                     }
             )
+            "Lucene" -> {
+                LuceneExpr(obj.getStr("query"))
+            }
             "Combine" -> {
                 val w_obj = obj.get("weights") ?: error("weights must be specified for combine $obj.")
                 if (!w_obj.isArray) error("weights must be an array in combine: $obj")
