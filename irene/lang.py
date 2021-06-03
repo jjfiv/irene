@@ -1,3 +1,4 @@
+from abc import abstractmethod, ABC
 from dataclasses import dataclass, field, asdict
 from typing import List, Optional
 
@@ -120,6 +121,13 @@ class WeightExpr(QExpr):
     kind: str = "Weight"
 
 
+@dataclass
+class CountEqualsExpr(QExpr):
+    child: QExpr
+    target: int
+    kind: str = "CountEquals"
+
+
 ###
 # Leaf Nodes
 ###
@@ -152,6 +160,7 @@ class WhitelistMatchExpr(QExpr):
 class DenseLongField(QExpr):
     name: str
     missing: int = 0
+    kind: str = "DenseLongField"
 
 
 class DenseFloatField(QExpr):

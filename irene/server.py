@@ -11,12 +11,10 @@ class DocResponse(object):
     document: Optional[Dict[str, Any]] = None  # if document asked for...
     rank: int = -1  # assigned on this side to save bandwidth/parsing time.
 
-
 @dataclass
 class SetResponse(object):
     matches: List[str]
     totalHits: int
-
 
 @dataclass
 class QueryResponse(object):
@@ -47,10 +45,10 @@ class IreneService(object):
         raise ValueError("Not found index='{}'".format(name))
 
     def tokenize(self, index: str, text: str, field: Optional[str] = None) -> List[str]:
-        params = {"text": text, "index": index}
+        params = {"text": text}
         if field is not None:
             params["field"] = field
-        r = requests.post(self._url("/api/tokenize"), json=params)
+        r = requests.get(self._url("/api/tokenize/{}".format(index)), params)
         if not r.ok:
             raise ValueError("{}: {}".format(r.status_code, r.reason))
         return r.json()["terms"]
