@@ -101,7 +101,7 @@ interface QueryMover {
 data class AndMover(val children: List<QueryMover>) : QueryMover {
     val N = children.size
     private var current: Int = 0
-    val cost = children.map { it.estimateDF() }.min() ?: 0L
+    val cost = children.map { it.estimateDF() }.minOrNull() ?: 0L
     val moveChildren = children.sortedBy { it.estimateDF() }
     init {
         advanceToMatch()
@@ -197,8 +197,8 @@ fun createAndMover(children: List<QueryMover>, numDocs: Int): QueryMover {
 
 /** Implements [QueryMover] which is basically a lucene document iterator */
 data class OrMover(val children: List<QueryMover>) : QueryMover {
-    var current = children.map { it.nextMatching(0) }.min()!!
-    val cost = children.map { it.estimateDF() }.max() ?: 0L
+    var current = children.map { it.nextMatching(0) }.minOrNull()!!
+    val cost = children.map { it.estimateDF() }.maxOrNull() ?: 0L
     val moveChildren = children.sortedByDescending { it.estimateDF() }
     override fun docID(): Int = current
     override fun advance(target: Int): Int {

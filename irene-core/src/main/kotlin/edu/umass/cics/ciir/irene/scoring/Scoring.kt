@@ -253,7 +253,7 @@ class MultiEvalNode(children: List<QueryEvalNode>, val names: List<String>) : Or
  * Abstract class that knows how to match a set of children, optimized on their expected DF. Most useful query models are subclasses, e.g. [WeightedSumEval].
  */
 abstract class OrEval<out T : QueryEvalNode>(children: List<T>) : RecursiveEval<T>(children) {
-    val cost = children.map { it.estimateDF() }.max() ?: 0L
+    val cost = children.map { it.estimateDF() }.maxOrNull() ?: 0L
     val moveChildren = children.sortedByDescending { it.estimateDF() }
     override fun estimateDF(): Long = cost
     override fun matches(env: ScoringEnv): Boolean {
@@ -263,7 +263,7 @@ abstract class OrEval<out T : QueryEvalNode>(children: List<T>) : RecursiveEval<
 
 /** Note that unlike in Galago, [AndEval] nodes do not perform movement. They briefly optimize to answer matches(doc) faster on average, but movement comes from a different query-program, e.g., [AndMover] where all leaf iterators only have doc information and are cheap copies as a result. */
 abstract class AndEval<out T : QueryEvalNode>(children: List<T>) : RecursiveEval<T>(children) {
-    val cost = children.map { it.estimateDF() }.min() ?: 0L
+    val cost = children.map { it.estimateDF() }.minOrNull() ?: 0L
     val moveChildren = children.sortedBy { it.estimateDF() }
     override fun estimateDF(): Long = cost
     override fun matches(env: ScoringEnv): Boolean {
